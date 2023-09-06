@@ -8,7 +8,15 @@ import net.querz.mcaselector.version.Helper;
 import net.querz.nbt.CompoundTag;
 import net.querz.nbt.ListTag;
 
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class Anvil117ChunkRenderer implements ChunkRenderer {
+
+	static Pattern PATTERN = Pattern.compile("^((a)|(b)|(c))*");
+	static int GROUP = 0;
+	static Matcher matcher = PATTERN.matcher("");
 
 	@Override
 	public void drawChunk(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, int height) {
@@ -35,9 +43,54 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 
 		int[] biomes = Helper.intArrayFromCompound(level, "Biomes");
 
+
 		for (int cx = 0; cx < Tile.CHUNK_SIZE; cx += scale) {
 			zLoop:
 			for (int cz = 0; cz < Tile.CHUNK_SIZE; cz += scale) {
+
+
+				StringBuilder names = new StringBuilder();
+				for (int i = palettes.length - (24 - (absHeight >> 4)); i >= 0; i--) {
+					long[] blockStates = blockStatesArray[i];
+					ListTag palette = palettes[i];
+
+					int bits = blockStates.length >> 6;
+					int clean = ((int) Math.pow(2, bits) - 1);
+					int startHeight;
+					if (absHeight >> 4 == i) {
+						startHeight = Tile.CHUNK_SIZE - (16 - absHeight % 16);
+					} else {
+						startHeight = Tile.CHUNK_SIZE - 1;
+					}
+
+					for (int cy = startHeight; cy >= 0; cy--) {
+						int paletteIndex = getPaletteIndex(getIndex(cx, cy, cz), blockStates, bits, clean);
+						CompoundTag blockData = palette.getCompound(paletteIndex);
+
+						String block = Helper.stringFromCompound(blockData, "Name", "");
+						char code = switch (block){
+							case "minecraft:air" -> 'a';
+							case "minecraft:cave_air" -> 'b';
+							case "minecraft:light" -> 'c';
+							default -> 'Q';
+						};
+
+						names.append(code);
+					}
+
+				}
+				matcher.reset(names);
+
+				if(!matcher.lookingAt()){
+					continue ;
+				}
+
+				int index = matcher.group(0).length();
+
+
+
+
+
 
 				// loop over sections
 				boolean waterDepth = false;
