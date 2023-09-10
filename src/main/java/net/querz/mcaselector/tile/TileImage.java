@@ -91,6 +91,7 @@ public final class TileImage {
 		tile.markedChunksImage = wImage;
 	}
 
+	static long estimatedTime = 0, br = 0;
 	public static Image generateImage(RegionMCAFile mcaFile, int scale) {
 
 		int size = Tile.SIZE / scale;
@@ -106,6 +107,7 @@ public final class TileImage {
 			short[] terrainHeights = new short[pixels];
 			short[] waterHeights = ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater() && !ConfigProvider.WORLD.getRenderCaves() ? new short[pixels] : null;
 
+			long startTime = System.currentTimeMillis();
 			for (int cx = 0; cx < Tile.SIZE_IN_CHUNKS; cx++) {
 				for (int cz = 0; cz < Tile.SIZE_IN_CHUNKS; cz++) {
 					int index = cz  * Tile.SIZE_IN_CHUNKS + cx;
@@ -119,6 +121,9 @@ public final class TileImage {
 					drawChunkImage(data, cx * chunkSize, cz * chunkSize, scale, pixelBuffer, waterPixels, terrainHeights, waterHeights);
 				}
 			}
+			estimatedTime += System.currentTimeMillis() - startTime;
+			br++;
+			System.out.println(estimatedTime / br);
 
 			if (ConfigProvider.WORLD.getRenderCaves()) {
 				flatShade(pixelBuffer, terrainHeights, scale);
