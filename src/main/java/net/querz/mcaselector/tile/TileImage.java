@@ -91,7 +91,6 @@ public final class TileImage {
 		tile.markedChunksImage = wImage;
 	}
 
-	static long estimatedTime = 0, br = 0;
 	public static Image generateImage(RegionMCAFile mcaFile, int scale) {
 
 		int size = Tile.SIZE / scale;
@@ -121,9 +120,8 @@ public final class TileImage {
 					drawChunkImage(data, cx * chunkSize, cz * chunkSize, scale, pixelBuffer, waterPixels, terrainHeights, waterHeights);
 				}
 			}
-			estimatedTime += System.currentTimeMillis() - startTime;
-			br++;
-			System.out.println(estimatedTime / br);
+			long estimatedTime = System.currentTimeMillis() - startTime;
+			System.out.println(estimatedTime);
 
 			if (ConfigProvider.WORLD.getRenderCaves()) {
 				flatShade(pixelBuffer, terrainHeights, scale);
