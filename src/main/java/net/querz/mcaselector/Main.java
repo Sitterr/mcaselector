@@ -14,8 +14,11 @@ import javax.swing.*;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Main {
+
+	public static AtomicInteger timeLoop = new AtomicInteger(), timeLogic = new AtomicInteger();
 
 	public static void main(String[] args) throws ExecutionException, InterruptedException {
 		Logging.setLogDir(Config.BASE_LOG_DIR);

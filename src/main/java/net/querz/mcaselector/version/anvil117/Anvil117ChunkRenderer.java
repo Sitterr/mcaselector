@@ -1,5 +1,6 @@
 package net.querz.mcaselector.version.anvil117;
 
+import net.querz.mcaselector.Main;
 import net.querz.mcaselector.math.MathUtil;
 import net.querz.mcaselector.tile.Tile;
 import net.querz.mcaselector.version.ChunkRenderer;
@@ -48,6 +49,8 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 			zLoop:
 			for (int cz = 0; cz < Tile.CHUNK_SIZE; cz += scale) {
 
+				long now = System.currentTimeMillis();
+
 				int regionIndex = ((z + cz / scale) * (Tile.SIZE / scale) + (x + cx / scale));
 				StringBuilder names = new StringBuilder();
 				ArrayList<Integer> indexes = new ArrayList<Integer>();
@@ -78,6 +81,10 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 					}
 
 				}
+				Main.timeLoop.addAndGet((int)(System.currentTimeMillis() - now));
+
+				long nowf = System.currentTimeMillis();
+
 				Matcher matcher = PATTERN.matcher(names);
 
 
@@ -96,7 +103,7 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 				//TODO: get block out of index
 				pixelBuffer[regionIndex] = colorMapping.getRGB(dummy, 1);
 
-
+				Main.timeLogic.addAndGet((int)(System.currentTimeMillis() - nowf));
 
 				if(false) {
 					// loop over sections

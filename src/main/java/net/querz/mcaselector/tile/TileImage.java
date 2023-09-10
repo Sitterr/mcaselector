@@ -6,6 +6,7 @@ import javafx.scene.image.PixelFormat;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
+import net.querz.mcaselector.Main;
 import net.querz.mcaselector.config.ConfigProvider;
 import net.querz.mcaselector.io.FileHelper;
 import net.querz.mcaselector.io.mca.Chunk;
@@ -106,7 +107,7 @@ public final class TileImage {
 			short[] terrainHeights = new short[pixels];
 			short[] waterHeights = ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater() && !ConfigProvider.WORLD.getRenderCaves() ? new short[pixels] : null;
 
-			long startTime = System.currentTimeMillis();
+			//long startTime = System.currentTimeMillis();
 			for (int cx = 0; cx < Tile.SIZE_IN_CHUNKS; cx++) {
 				for (int cz = 0; cz < Tile.SIZE_IN_CHUNKS; cz++) {
 					int index = cz  * Tile.SIZE_IN_CHUNKS + cx;
@@ -120,8 +121,8 @@ public final class TileImage {
 					drawChunkImage(data, cx * chunkSize, cz * chunkSize, scale, pixelBuffer, waterPixels, terrainHeights, waterHeights);
 				}
 			}
-			long estimatedTime = System.currentTimeMillis() - startTime;
-			System.out.println(estimatedTime);
+			//long estimatedTime = System.currentTimeMillis() - startTime;
+			System.out.println(Main.timeLoop.get() + "|" + Main.timeLogic.get());
 
 			if (ConfigProvider.WORLD.getRenderCaves()) {
 				flatShade(pixelBuffer, terrainHeights, scale);
