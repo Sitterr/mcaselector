@@ -15,8 +15,8 @@ import java.util.regex.Pattern;
 
 public class Anvil117ChunkRenderer implements ChunkRenderer {
 
-	static Pattern PATTERN = Pattern.compile("^((minecraft:air)|(minecraft:cave_air))*");
-	static int GROUP = 0;
+	static Pattern PATTERN = Pattern.compile("^[a-c]*[^a-c]a*(?<CAPTURE>.?)");
+	static String GROUP = "CAPTURE";
 	//static Matcher matcher = PATTERN.matcher("");
 
 	@Override
