@@ -1,5 +1,6 @@
 package net.querz.mcaselector.version.anvil118;
 
+import net.querz.mcaselector.io.registry.BiomeRegistry;
 import net.querz.mcaselector.math.Bits;
 import net.querz.mcaselector.math.MathUtil;
 import net.querz.mcaselector.tile.Tile;
@@ -12,7 +13,7 @@ import static net.querz.mcaselector.validation.ValidationHelper.silent;
 public class Anvil118ChunkRenderer implements ChunkRenderer {
 
 	@Override
-	public void drawChunk(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, int height) {
+	public void drawChunk(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, int defaultBiome, int height) {
 		Integer dataVersion = Helper.intFromCompound(root, "DataVersion");
 		if (dataVersion == null) {
 			return;
@@ -94,9 +95,11 @@ public class Anvil118ChunkRenderer implements ChunkRenderer {
 						String biome = "";
 						if (dataVersion >= 2834) {
 							biome = getBiomeAtBlock(biomeIndices, biomesPalette, cx, cy, cz, biomeBits);
+							biome = defaultBiome == -1 ? biome : BiomeRegistry.toName(defaultBiome);
 						} else {
 							biomeLegacy = getBiomeAtBlock(biomes, cx, sectionHeight + cy, cz);
 							biomeLegacy = MathUtil.clamp(biomeLegacy, 0, 255);
+							biomeLegacy = defaultBiome == -1 ? biomeLegacy : defaultBiome;
 						}
 
 						int regionIndex = (z + cz / scale) * (Tile.SIZE / scale) + (x + cx / scale);

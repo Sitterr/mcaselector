@@ -2,12 +2,14 @@ package net.querz.mcaselector.ui.dialog;
 
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
+import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Line;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.StringConverter;
@@ -49,6 +51,7 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 	private final Button pasteChunksColorPreview = new Button();
 	private final CheckBox shadeCheckBox = new CheckBox();
 	private final CheckBox shadeWaterCheckBox = new CheckBox();
+	private final CheckBox tintBiomesCheckBox = new CheckBox();
 	private final CheckBox showNonexistentRegionsCheckBox = new CheckBox();
 	private final CheckBox smoothRendering = new CheckBox();
 	private final CheckBox smoothOverlays = new CheckBox();
@@ -85,6 +88,7 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 			pasteChunksColorPreview.setBackground(new Background(new BackgroundFill(GlobalConfig.DEFAULT_PASTE_CHUNKS_COLOR.makeJavaFXColor(), CornerRadii.EMPTY, Insets.EMPTY)));
 			shadeCheckBox.setSelected(WorldConfig.DEFAULT_SHADE);
 			shadeWaterCheckBox.setSelected(WorldConfig.DEFAULT_SHADE_WATER);
+			tintBiomesCheckBox.setSelected(WorldConfig.DEFAULT_TINT_BIOMES);
 			showNonexistentRegionsCheckBox.setSelected(WorldConfig.DEFAULT_SHOW_NONEXISTENT_REGIONS);
 			smoothRendering.setSelected(WorldConfig.DEFAULT_SMOOTH_RENDERING);
 			smoothOverlays.setSelected(WorldConfig.DEFAULT_SMOOTH_OVERLAYS);
@@ -126,6 +130,7 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 		pasteChunksColorPreview.setBackground(new Background(new BackgroundFill(pasteChunksColor, CornerRadii.EMPTY, Insets.EMPTY)));
 		shadeCheckBox.setSelected(ConfigProvider.WORLD.getShade());
 		shadeWaterCheckBox.setSelected(ConfigProvider.WORLD.getShadeWater());
+		tintBiomesCheckBox.setSelected(ConfigProvider.WORLD.getTintBiomes());
 		showNonexistentRegionsCheckBox.setSelected(ConfigProvider.WORLD.getShowNonexistentRegions());
 		smoothRendering.setSelected(ConfigProvider.WORLD.getSmoothRendering());
 		smoothOverlays.setSelected(ConfigProvider.WORLD.getSmoothOverlays());
@@ -277,6 +282,7 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 		GridPane shadingGrid = createGrid();
 		addPairToGrid(shadingGrid, 0, UIFactory.label(Translation.DIALOG_SETTINGS_RENDERING_SHADE_SHADE), shadeCheckBox);
 		addPairToGrid(shadingGrid, 1, UIFactory.label(Translation.DIALOG_SETTINGS_RENDERING_SHADE_SHADE_WATER), shadeWaterCheckBox);
+		addPairToGrid(shadingGrid, 2, UIFactory.label(Translation.DIALOG_SETTINGS_RENDERING_SHADE_SHADE_WATER), tintBiomesCheckBox);
 		BorderedTitledPane shade = new BorderedTitledPane(Translation.DIALOG_SETTINGS_RENDERING_SHADE, shadingGrid);
 
 		GridPane smoothGrid = createGrid();
@@ -290,16 +296,137 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 
 		GridPane layerGrid = createGrid();
 		addPairToGrid(layerGrid, 0, UIFactory.label(Translation.DIALOG_SETTINGS_RENDERING_LAYERS_RENDER_HEIGHT), hSlider);
-		addPairToGrid(layerGrid, 1, UIFactory.label(Translation.DIALOG_SETTINGS_RENDERING_LAYERS_RENDER_LAYER_ONLY), layerOnly);
-		addPairToGrid(layerGrid, 2, UIFactory.label(Translation.DIALOG_SETTINGS_RENDERING_LAYERS_RENDER_CAVES), caves);
 		BorderedTitledPane layers = new BorderedTitledPane(Translation.DIALOG_SETTINGS_RENDERING_LAYERS, layerGrid);
+
+
+
+
+		VBox renderingMode = new VBox();
+		renderingMode.setSpacing(5);
+
+		HBox regexBtnBox = new HBox();
+		{
+			Button regex = new Button("Regex rendering: ON");
+			regex.setMaxWidth(Double.MAX_VALUE);
+			regexBtnBox.getChildren().add(regex);
+			HBox.setHgrow(regex, javafx.scene.layout.Priority.ALWAYS);
+		}
+
+
+		GridPane renderingModesGrid = new GridPane();
+		{
+			renderingModesGrid.setVgap(10);
+			renderingModesGrid.setHgap(10);
+			ArrayList<ColumnConstraints> cols = new ArrayList<>();
+			int colCount = 15;
+			for(int i=0;i<colCount;i++){
+				var newColumn = new ColumnConstraints();
+				newColumn.setPercentWidth((double)100/colCount);
+				cols.add(newColumn);
+			}
+			renderingModesGrid.getColumnConstraints().addAll(cols);
+
+			ToggleGroup modesRadioGroup = new ToggleGroup();
+			var r1 = new RadioButton("default");
+			var r2 = new RadioButton("layer only");
+			var r3 = new RadioButton("caves");
+
+			var r4 = new RadioButton("?");
+			var r5 = new RadioButton("deep water");
+			var r6 = new RadioButton("no flora");
+
+			var r7 = new RadioButton("#custom1");
+			var r8 = new RadioButton("#custom2");
+			var r9 = new RadioButton("#custom3");
+
+			r1.setToggleGroup(modesRadioGroup);
+			r2.setToggleGroup(modesRadioGroup);
+			r3.setToggleGroup(modesRadioGroup);
+			r4.setToggleGroup(modesRadioGroup);
+			r5.setToggleGroup(modesRadioGroup);
+			r6.setToggleGroup(modesRadioGroup);
+			r7.setToggleGroup(modesRadioGroup);
+			r8.setToggleGroup(modesRadioGroup);
+			r9.setToggleGroup(modesRadioGroup);
+
+			//renderingModeGrid.add(regexHBox, 0, 0, 15, 1);
+			renderingModesGrid.add(r1, 0, 0, 5, 1);
+			renderingModesGrid.add(r2, 5, 0, 5, 1);
+			renderingModesGrid.add(r3, 10, 0, 5, 1);
+
+			renderingModesGrid.add(r4, 0, 1, 5, 1);
+			renderingModesGrid.add(r5, 5, 1, 5, 1);
+			renderingModesGrid.add(r6, 10, 1, 5, 1);
+
+			renderingModesGrid.add(r7, 0, 2, 5, 1);
+			renderingModesGrid.add(r8, 5, 2, 5, 1);
+			renderingModesGrid.add(r9, 10, 2, 5, 1);
+		}
+
+		HBox regexBox = new HBox();
+
+		{
+			regexBox.setSpacing(10);
+
+			VBox left = new VBox();
+			left.setSpacing(10);
+			//left.setAlignment(Pos.CENTER);
+			left.getChildren().add(new Label("Regex:"));
+			left.getChildren().add(new Label("Match group:"));
+			left.getChildren().add(new Label("Mapping:"));
+
+			GridPane right = new GridPane();
+			right.setVgap(10);
+			right.setHgap(10);
+			ArrayList<ColumnConstraints> cols = new ArrayList<>();
+			int colCount = 8;
+			for(int i=0;i<colCount;i++){
+				var newColumn = new ColumnConstraints();
+				newColumn.setPercentWidth((double)100/colCount);
+				cols.add(newColumn);
+			}
+			right.getColumnConstraints().addAll(cols);
+
+			right.add(new TextField(), 0, 0, 8, 1);
+
+
+			right.add(new TextField(), 0, 1, 2, 1);
+			right.add(createLabelTextField(new Label("Else:"), new TextField("air")), 2, 1, 3, 1);
+			var matchPropertyListBox = new ComboBox<String>();
+			matchPropertyListBox.getItems().add("Block");
+			matchPropertyListBox.getItems().add("Biome");
+			matchPropertyListBox.setValue("Block");
+			right.add(matchPropertyListBox, 5, 1, 3, 1);
+
+			var ta = new TextArea("");
+			ta.setMinWidth(0);
+			ta.setMinHeight(0);
+			ta.setPrefColumnCount(0);
+			ta.setMaxHeight(ta.getFont().getSize() * 2 * 2);
+
+			right.add(ta, 0, 2, 8, 2);
+
+			HBox.setHgrow(right, Priority.ALWAYS);
+			regexBox.getChildren().addAll(left, right);
+		}
+
+		renderingMode.getChildren().add(regexBtnBox);
+		renderingMode.getChildren().add(new Label(""));
+		renderingMode.getChildren().add(renderingModesGrid);
+		renderingMode.getChildren().add(new Label(""));
+		renderingMode.getChildren().add(regexBox);
+
+
+		BorderedTitledPane mode = new BorderedTitledPane(Translation.DIALOG_SETTINGS_RENDERING_LAYERS, renderingMode);
+
 
 		GridPane backgroundGrid = createGrid();
 		addPairToGrid(backgroundGrid, 0, UIFactory.label(Translation.DIALOG_SETTINGS_RENDERING_BACKGROUND_BACKGROUND_PATTERN), tileMapBackgrounds);
 		addPairToGrid(backgroundGrid, 1, UIFactory.label(Translation.DIALOG_SETTINGS_RENDERING_BACKGROUND_SHOW_NONEXISTENT_REGIONS), showNonexistentRegionsCheckBox);
 		BorderedTitledPane background = new BorderedTitledPane(Translation.DIALOG_SETTINGS_RENDERING_BACKGROUND, backgroundGrid);
 
-		renderingBox.getChildren().addAll(shadingAndSmooth, layers, background);
+		renderingBox.getChildren().addAll(shadingAndSmooth, layers, mode, background);
+		//renderingBox.getChildren().addAll(mode);
 		renderingTab.setContent(renderingBox);
 		ToggleButton renderingToggleButton = createToggleButton(renderingTab, Translation.DIALOG_SETTINGS_TAB_RENDERING);
 		rightTabs.getChildren().add(renderingToggleButton);
@@ -357,6 +484,7 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 					pasteChunksColor,
 					shadeCheckBox.isSelected(),
 					shadeWaterCheckBox.isSelected(),
+					tintBiomesCheckBox.isSelected(),
 					showNonexistentRegionsCheckBox.isSelected(),
 					smoothRendering.isSelected(),
 					smoothOverlays.isSelected(),
@@ -393,6 +521,21 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 		return toggleButton;
 	}
 
+	private GridPane createLabelTextField(Label label, TextField node){
+		GridPane customFilterGrid = new GridPane();
+		customFilterGrid.setHgap(10);
+		ColumnConstraints c1 = new ColumnConstraints(), c2 = new ColumnConstraints();
+		//c1.setHgrow(Priority.NEVER);
+		c2.setHgrow(Priority.ALWAYS);
+		node.setMinWidth(0);
+		node.setPrefWidth(0);
+		//node.setMaxWidth(Double.MAX_VALUE);
+		customFilterGrid.getColumnConstraints().addAll(c1, c2);
+		customFilterGrid.add(label, 0, 0, 1, 1);
+		customFilterGrid.add(node, 1, 0, 1, 1);
+		return customFilterGrid;
+	}
+
 	private GridPane createGrid() {
 		GridPane grid = new GridPane();
 		grid.getStyleClass().add("slider-grid-pane");
@@ -427,6 +570,7 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 		public final Color regionColor, chunkColor, pasteColor;
 		public final boolean shadeWater;
 		public final boolean shade;
+		public final boolean tintBiomes;
 		public final boolean showNonexistentRegions;
 		public final boolean smoothRendering, smoothOverlays;
 		public final TileMapBox.TileMapBoxBackground tileMapBackground;
@@ -438,7 +582,7 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 		public final File poi, entities;
 
 		public Result(Locale locale, int processThreads, int writeThreads, int maxLoadedFiles,
-		              Color regionColor, Color chunkColor, Color pasteColor, boolean shade, boolean shadeWater,
+		              Color regionColor, Color chunkColor, Color pasteColor, boolean shade, boolean shadeWater, boolean tintBiomes,
 		              boolean showNonexistentRegions, boolean smoothRendering, boolean smoothOverlays,
 		              TileMapBox.TileMapBoxBackground tileMapBackground, File mcSavesDir, boolean debug, int height,
 		              boolean layerOnly, boolean caves, File poi, File entities) {
@@ -452,6 +596,7 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 			this.pasteColor = pasteColor;
 			this.shade = shade;
 			this.shadeWater = shadeWater;
+			this.tintBiomes = tintBiomes;
 			this.showNonexistentRegions = showNonexistentRegions;
 			this.smoothRendering = smoothRendering;
 			this.smoothOverlays = smoothOverlays;

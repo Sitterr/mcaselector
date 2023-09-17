@@ -28,6 +28,7 @@ public class WorldConfig extends Config {
 	public static final boolean DEFAULT_RENDER_CAVES = false;
 	public static final boolean DEFAULT_SHADE = true;
 	public static final boolean DEFAULT_SHADE_WATER = true;
+	public static final boolean DEFAULT_TINT_BIOMES = true;
 	public static final boolean DEFAULT_SMOOTH_RENDERING = false;
 	public static final boolean DEFAULT_SMOOTH_OVERLAYS = true;
 	public static final String DEFAULT_TILEMAP_BACKGROUND = "BLACK";
@@ -47,6 +48,7 @@ public class WorldConfig extends Config {
 	private boolean renderCaves = DEFAULT_RENDER_CAVES;
 	private boolean shade = DEFAULT_SHADE;
 	private boolean shadeWater = DEFAULT_SHADE_WATER;
+	private boolean tintBiomes = DEFAULT_TINT_BIOMES;
 	private boolean smoothRendering = DEFAULT_SMOOTH_RENDERING;
 	private boolean smoothOverlays = DEFAULT_SMOOTH_OVERLAYS;
 	private String tileMapBackground = DEFAULT_TILEMAP_BACKGROUND;
@@ -135,6 +137,14 @@ public class WorldConfig extends Config {
 
 	public void setShadeWater(boolean shadeWater) {
 		this.shadeWater = shadeWater;
+	}
+
+	public boolean getTintBiomes() {
+		return tintBiomes;
+	}
+
+	public void setTintBiomes(boolean tintBiomes) {
+		this.tintBiomes = tintBiomes;
 	}
 
 	public boolean getSmoothRendering() {

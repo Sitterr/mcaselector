@@ -1,26 +1,27 @@
 package net.querz.mcaselector.version.anvil117;
 
+import groovyjarjarantlr4.v4.runtime.atn.PredicateTransition;
 import net.querz.mcaselector.Main;
+import net.querz.mcaselector.io.registry.BiomeRegistry;
 import net.querz.mcaselector.math.MathUtil;
+import net.querz.mcaselector.text.TextHelper;
 import net.querz.mcaselector.tile.Tile;
 import net.querz.mcaselector.version.ChunkRenderer;
 import net.querz.mcaselector.version.ColorMapping;
 import net.querz.mcaselector.version.Helper;
+import net.querz.mcaselector.version.RegexMapping;
 import net.querz.nbt.CompoundTag;
 import net.querz.nbt.ListTag;
 
-import java.util.ArrayList;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class Anvil117ChunkRenderer implements ChunkRenderer {
 
-	static Pattern PATTERN = Pattern.compile("^[a-c]*[^a-c]a*(?<CAPTURE>.?)");
-	static String GROUP = "CAPTURE";
+
 	//static Matcher matcher = PATTERN.matcher("");
 
 	@Override
-	public void drawChunk(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, int height) {
+	public void drawChunk(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, int defaultBiome, int height) {
 		ListTag sections = Helper.getSectionsFromLevelFromRoot(root, "Sections");
 		if (sections == null) {
 			return;
@@ -44,6 +45,8 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 
 		int[] biomes = Helper.intArrayFromCompound(level, "Biomes");
 
+		final Matcher matcher = Main.PATTERN.matcher("");
+		String emptyCollection = Character.toString(RegexMapping.encode("air")).repeat(Tile.CHUNK_SIZE);
 
 		for (int cx = 0; cx < Tile.CHUNK_SIZE; cx += scale) {
 			zLoop:
@@ -52,10 +55,17 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 				long now = System.currentTimeMillis();
 
 				int regionIndex = ((z + cz / scale) * (Tile.SIZE / scale) + (x + cx / scale));
+
 				StringBuilder names = new StringBuilder();
-				ArrayList<Integer> indexes = new ArrayList<Integer>();
-				for (int i = palettes.length - (24 - (absHeight >> 4)); i >= 0; i--) {
+				boolean foundMatch = false;
+				int skippedBlocks = 0;
+
+				int i = -1;
+				for (i = palettes.length - (24 - (absHeight >> 4)); i >= 0; i--) {
+					if(foundMatch) break;
 					if (blockStatesArray[i] == null) {
+						skippedBlocks += Tile.CHUNK_SIZE;
+						names.append(emptyCollection);
 						continue;
 					}
 
@@ -76,53 +86,102 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 						CompoundTag blockData = palette.getCompound(paletteIndex);
 
 						String block = Helper.stringFromCompound(blockData, "Name", "");
-						indexes.add(names.length());
-						names.append(block);
+						names.append(RegexMapping.encode(block));
 					}
 
+					matcher.reset(names);
+					while (matcher.find()) {
+						if (!matcher.group(Main.GROUP).isEmpty()) {
+							foundMatch = true;
+							i++;
+							break;
+						}
+					}
 				}
-				Main.timeLoop.addAndGet((int)(System.currentTimeMillis() - now));
+				if (!foundMatch) continue;
+
+				Main.timeLoop.addAndGet((int) (System.currentTimeMillis() - now));
+
+
 
 				long nowf = System.currentTimeMillis();
 
-				Matcher matcher = PATTERN.matcher(names);
 
+				int index = /*skippedBlocks +*/ matcher.start(Main.GROUP);
+				if(index < skippedBlocks) continue zLoop;
+				int indexCY = Tile.CHUNK_SIZE - index % Tile.CHUNK_SIZE - 1;
+				CompoundTag blockData;
+				int biome = -1;
 
-				if(!matcher.lookingAt()){
-					continue ;
+				{
+					ListTag palette = palettes[i];
+					long[] blockStates = blockStatesArray[i];
+					int bits = blockStates.length >> 6;
+					int clean = (int) Math.pow(2, bits) - 1;
+					int paletteIndex = getPaletteIndex(getIndex(cx, indexCY, cz), blockStates, bits, clean);
+					blockData = palette.getCompound(paletteIndex);
+					String name = blockData.getString("Name");
+					//blockData = new CompoundTag();
+					blockData.putString("Name", RegexMapping.code(name));
+					if(isEmpty(blockData)) continue zLoop;
+
+					biome = getBiomeAtBlock(biomes, cx, height - index, cz);
+					biome = MathUtil.clamp(biome, 0, 255);
+					biome = defaultBiome == -1 ? biome : defaultBiome;
+				}
+				pixelBuffer[regionIndex] = colorMapping.getRGB(blockData, biome);
+				if (water) waterPixels[regionIndex] = pixelBuffer[regionIndex];
+				terrainHeights[regionIndex] = (short) (height - index);
+				if (water) waterHeights[regionIndex] = terrainHeights[regionIndex];
+
+				/*int color;
+				int mappedColor = RegexMapping.colorcode(switch (Main.PROPERTY){
+					case "BLOCK" -> Helper.stringFromCompound(blockData, "Name", "");
+					case "BIOME" -> BiomeRegistry.toName(biome);
+					default -> "";
+				});
+				color = mappedColor;
+				if(color == Integer.MIN_VALUE) {
+					int defColor = switch (Main.PROPERTY){
+						case "BLOCK" -> colorMapping.getRGB(blockData, biome);
+						case "BIOME" -> Integer.MIN_VALUE;
+						default -> Integer.MIN_VALUE;
+					};
+					color = defColor;
+				}
+				if(color == Integer.MIN_VALUE) continue;
+
+				if(Main.PROPERTY.equals("BLOCK")){
+					terrainHeights[regionIndex] = (short) (height - index);
+					if (water) waterHeights[regionIndex] = terrainHeights[regionIndex];
+
+					//color = colorMapping.applyBiomeTint(Helper.stringFromCompound(blockData, "Name", ""), biome, color);
 				}
 
-				int index = indexes.indexOf(matcher.group(GROUP).length());
+				pixelBuffer[regionIndex] = color;
+				if (water) waterPixels[regionIndex] = pixelBuffer[regionIndex];*/
 
-				String name = names.substring(matcher.group(GROUP).length(), indexes.get(index + 1));
-				//System.out.println(name);
 
-				CompoundTag dummy = new CompoundTag();
-				dummy.putString("Name", name);
+				Main.timeLogic.addAndGet((int) (System.currentTimeMillis() - nowf));
 
-				//TODO: get block out of index
-				pixelBuffer[regionIndex] = colorMapping.getRGB(dummy, 1);
-
-				Main.timeLogic.addAndGet((int)(System.currentTimeMillis() - nowf));
-
-				if(false) {
-					// loop over sections
-					boolean waterDepth = false;
-					for (int i = palettes.length - (24 - (absHeight >> 4)); i >= 0; i--) {
-						if (blockStatesArray[i] == null) {
+				if (water && isWater(blockData)) {
+					for (int j = i; j >= 0; j--) {
+						if (blockStatesArray[j] == null) {
 							continue;
 						}
 
-						long[] blockStates = blockStatesArray[i];
-						ListTag palette = palettes[i];
+						long[] blockStates = blockStatesArray[j];
+						ListTag palette = palettes[j];
 
-						int sectionHeight = (i - 4) * Tile.CHUNK_SIZE;
+						int sectionHeight = (j - 4) * Tile.CHUNK_SIZE;
 
 						int bits = blockStates.length >> 6;
 						int clean = ((int) Math.pow(2, bits) - 1);
 
 						int startHeight;
-						if (absHeight >> 4 == i) {
+						if(j == i){
+							startHeight = indexCY;
+						} else if (absHeight >> 4 == j) {
 							startHeight = Tile.CHUNK_SIZE - (16 - absHeight % 16);
 						} else {
 							startHeight = Tile.CHUNK_SIZE - 1;
@@ -130,41 +189,29 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 
 						for (int cy = startHeight; cy >= 0; cy--) {
 							int paletteIndex = getPaletteIndex(getIndex(cx, cy, cz), blockStates, bits, clean);
-							CompoundTag blockData = palette.getCompound(paletteIndex);
+							CompoundTag wblockData = palette.getCompound(paletteIndex);
+							wblockData.putString("Name", RegexMapping.code(wblockData.getString("Name")));
 
-							if (isEmpty(blockData)) {
+							if (isWater(wblockData)) {
 								continue;
 							}
 
-							int biome = getBiomeAtBlock(biomes, cx, sectionHeight + cy, cz);
-							biome = MathUtil.clamp(biome, 0, 255);
+							int wbiome = getBiomeAtBlock(biomes, cx, sectionHeight + cy, cz);
+							wbiome = MathUtil.clamp(wbiome, 0, 255);
 
-							//int regionIndex = ((z + cz / scale) * (Tile.SIZE / scale) + (x + cx / scale));
-							if (water) {
-								if (!waterDepth) {
-									pixelBuffer[regionIndex] = colorMapping.getRGB(blockData, biome); // water color
-									waterHeights[regionIndex] = (short) (sectionHeight + cy); // height of highest water or terrain block
-								}
-								if (isWater(blockData)) {
-									waterDepth = true;
-									continue;
-								} else if (isWaterlogged(blockData)) {
-									pixelBuffer[regionIndex] = colorMapping.getRGB(waterDummy, biome); // water color
-									waterPixels[regionIndex] = colorMapping.getRGB(blockData, biome); // color of waterlogged block
-									waterHeights[regionIndex] = (short) (sectionHeight + cy);
-									terrainHeights[regionIndex] = (short) (sectionHeight + cy - 1); // "height" of bottom of water, which will just be 1 block lower so shading works
-									continue zLoop;
-								} else {
-									waterPixels[regionIndex] = colorMapping.getRGB(blockData, biome); // color of block at bottom of water
-								}
+							if (isWaterlogged(wblockData)) {
+								pixelBuffer[regionIndex] = colorMapping.getRGB(waterDummy, wbiome); // water color
+								waterPixels[regionIndex] = colorMapping.getRGB(wblockData, wbiome); // color of waterlogged block
+								waterHeights[regionIndex] = (short) (sectionHeight + cy);
+								terrainHeights[regionIndex] = (short) (sectionHeight + cy - 1); // "height" of bottom of water, which will just be 1 block lower so shading works
 							} else {
-								pixelBuffer[regionIndex] = colorMapping.getRGB(blockData, biome);
+								waterPixels[regionIndex] = colorMapping.getRGB(wblockData, wbiome); // color of block at bottom of water
+								terrainHeights[regionIndex] = (short) (sectionHeight + cy);
 							}
-							terrainHeights[regionIndex] = (short) (sectionHeight + cy); // height of bottom of water
+
 							continue zLoop;
 						}
 					}
-
 				}
 			}
 		}

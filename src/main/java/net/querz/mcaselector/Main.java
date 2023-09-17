@@ -16,16 +16,35 @@ import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 
 public class Main {
 
 	public static AtomicInteger timeLoop = new AtomicInteger(), timeLogic = new AtomicInteger();
 
+
+	public static final String DEFAULT = "^a*(?<CAPTURE>.?)";
+	public static final String LAYER_ONLY = "^(?<CAPTURE>.?)";
+	public static final String WATER_ONLY = "(?<CAPTURE>(w|1))";
+	public static final String DEEP_WATER = "^[a-e]*w{0,20}(?<CAPTURE>.?)";
+	public static final String CAVES_ORIGINAL = "^[a-e]*[^a-e][a-e]+(?<CAPTURE>.?)";
+
+	public static final String EXPERIMENTAL = "(?<CAPTURE>l)";
+
+	public static final Pattern PATTERN = Pattern.compile(EXPERIMENTAL);
+	public static final String GROUP = "CAPTURE";
+
+	public static final String PROPERTY = "BLOCK";
+
+	public static final String CUSTOM_MAPPING = "lava=l;l=gold_block;air=a;cave_air=a;barrier=a;structure_void=a;light=a;water=w;";
+
 	public static void main(String[] args) throws ExecutionException, InterruptedException {
 
-		System.out.println(RegexMapping.mapToChar("air") + " | " + RegexMapping.mapToChar("cave_air"));
+		RegexMapping.readCustomMapping(Main.CUSTOM_MAPPING);
 
-		if(false) {
+		//System.out.println((int)RegexMapping.mapToChar("air") + " | " + (int)RegexMapping.mapToChar("cave_air"));
+
+		if(true) {
 			Logging.setLogDir(Config.BASE_LOG_DIR);
 			Logging.updateThreadContext();
 			Logger LOGGER = LogManager.getLogger(Main.class);

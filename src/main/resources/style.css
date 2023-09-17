@@ -240,8 +240,7 @@
 	-fx-background-radius: 0;
 	-fx-border-width: 1;
 	-fx-border-color: -color-combo-box-border;
-	-fx-pref-width: 130px;
-	-fx-min-width: 70px;
+
 	-fx-padding: 0;
 }
 
@@ -342,8 +341,6 @@
 
 .text-area {
 	-fx-text-fill: -color-text-light;
-	-fx-pref-height: 200px;
-	-fx-pref-width: 600px;
 }
 
 .text-area .content {

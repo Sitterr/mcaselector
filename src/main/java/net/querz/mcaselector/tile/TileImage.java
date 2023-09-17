@@ -173,6 +173,7 @@ public final class TileImage {
 						terrainHeights,
 						waterHeights,
 						ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater(),
+						ConfigProvider.WORLD.getTintBiomes() ? -1 : 1,
 						ConfigProvider.WORLD.getRenderHeight()
 				);
 			}

@@ -288,13 +288,14 @@ public class DialogHelper {
 				tileMap.getWindow().getTileMapBox().setBackground(r.tileMapBackground.getBackground());
 
 				if (r.height != ConfigProvider.WORLD.getRenderHeight() || r.layerOnly != ConfigProvider.WORLD.getRenderLayerOnly()
-					|| r.shade != ConfigProvider.WORLD.getShade() || r.shadeWater != ConfigProvider.WORLD.getShadeWater() || r.caves != ConfigProvider.WORLD.getRenderCaves()) {
+					|| r.shade != ConfigProvider.WORLD.getShade() || r.shadeWater != ConfigProvider.WORLD.getShadeWater() || r.tintBiomes != ConfigProvider.WORLD.getTintBiomes() || r.caves != ConfigProvider.WORLD.getRenderCaves()) {
 					ConfigProvider.WORLD.setRenderHeight(r.height);
 					ConfigProvider.WORLD.setRenderLayerOnly(r.layerOnly);
 					ConfigProvider.WORLD.setRenderCaves(r.caves);
 					tileMap.getWindow().getOptionBar().setRenderHeight(r.height);
 					ConfigProvider.WORLD.setShade(r.shade);
 					ConfigProvider.WORLD.setShadeWater(r.shadeWater);
+					ConfigProvider.WORLD.setTintBiomes(r.tintBiomes);
 					// only clear the cache if the actual image rendering changed
 					CacheHelper.clearAllCache(tileMap);
 				}
