@@ -27,13 +27,13 @@ public class Main {
 	public static final String LAYER_ONLY = "^(?<CAPTURE>.?)";
 	public static final String WATER_ONLY = "(?<CAPTURE>(w|1))";
 	public static final String DEEP_WATER = "^[a-e]*w{0,20}(?<CAPTURE>.?)";
-	public static final String CAVES_ORIGINAL = "^[a-e]*[^a-e][a-e]+(?<CAPTURE>.?)";
+	public static final String CAVES_ORIGINAL = "^a*[^a]a+(?<CAPTURE>.?)";
 
 	public static final String EXPERIMENTAL = "(?<CAPTURE>l)";
 
 	public static final Pattern PATTERN = Pattern.compile(DEFAULT);
 	public static final String GROUP = "CAPTURE";
-	public static final String CUSTOM_MAPPING = "water=w;w=#e44d3f;air=a;cave_air=a;barrier=a;structure_void=a;light=a;";
+	public static final String CUSTOM_MAPPING = "water=w;w=#3f58e4;air=a;cave_air=a;barrier=a;structure_void=a;light=a;";
 
 	public static void main(String[] args) throws ExecutionException, InterruptedException {
 

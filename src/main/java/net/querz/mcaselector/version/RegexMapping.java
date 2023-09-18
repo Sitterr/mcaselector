@@ -68,7 +68,7 @@ public class RegexMapping {
                 char ch = m3.group(1).charAt(0);
                 String hexColor = m3.group(2);
 
-                map3.put(ch, TextHelper.parseInt(hexColor, 16));
+                map3.put(ch, TextHelper.parseInt(hexColor, 16) | 0xFF000000);
             }
         }
     }

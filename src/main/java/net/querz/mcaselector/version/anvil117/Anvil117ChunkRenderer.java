@@ -478,10 +478,11 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 	}
 	private CompoundTag code(CompoundTag blockData){
 		String name = blockData.getString("Name"), mapping = RegexMapping.code(name);
+		CompoundTag newBlockData = blockData;
 		if(!name.equals(mapping)) {
-			blockData = blockData.copy();
-			blockData.putString("Name", mapping);
+			newBlockData = blockData.copy();
+			newBlockData.putString("Name", mapping);
 		}
-		return blockData;
+		return newBlockData;
 	}
 }
