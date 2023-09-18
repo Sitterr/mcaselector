@@ -301,70 +301,49 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 
 
 
+
+
+
 		VBox renderingMode = new VBox();
-		renderingMode.setSpacing(5);
-
-		HBox regexBtnBox = new HBox();
-		{
-			Button regex = new Button("Regex rendering: ON");
-			regex.setMaxWidth(Double.MAX_VALUE);
-			regexBtnBox.getChildren().add(regex);
-			HBox.setHgrow(regex, javafx.scene.layout.Priority.ALWAYS);
-		}
+		//renderingMode.setSpacing(5);
 
 
-		GridPane renderingModesGrid = new GridPane();
-		{
-			renderingModesGrid.setVgap(10);
-			renderingModesGrid.setHgap(10);
-			ArrayList<ColumnConstraints> cols = new ArrayList<>();
-			int colCount = 15;
-			for(int i=0;i<colCount;i++){
-				var newColumn = new ColumnConstraints();
-				newColumn.setPercentWidth((double)100/colCount);
-				cols.add(newColumn);
-			}
-			renderingModesGrid.getColumnConstraints().addAll(cols);
+		ToggleGroup modesRadioGroup = new ToggleGroup();
+		var r1 = new RadioButton("standard");
+		var r2 = new RadioButton("layer");
+		var r3 = new RadioButton("biome");
+		var r4 = new RadioButton("caves");
+		var r5 = new RadioButton("no water");
+		var r6 = new RadioButton("no flora");
+		var r7 = new RadioButton("?");
+		var r8 = new RadioButton("?");
+		var r9 = new RadioButton("#custom");
+		r1.setToggleGroup(modesRadioGroup);
+		r2.setToggleGroup(modesRadioGroup);
+		r3.setToggleGroup(modesRadioGroup);
+		r4.setToggleGroup(modesRadioGroup);
+		r5.setToggleGroup(modesRadioGroup);
+		r6.setToggleGroup(modesRadioGroup);
+		r7.setToggleGroup(modesRadioGroup);
+		r8.setToggleGroup(modesRadioGroup);
+		r9.setToggleGroup(modesRadioGroup);
 
-			ToggleGroup modesRadioGroup = new ToggleGroup();
-			var r1 = new RadioButton("default");
-			var r2 = new RadioButton("layer only");
-			var r3 = new RadioButton("caves");
+		GridPane buildInModes = createGrid(3);
+		buildInModes.add(r1, 0, 0, 1, 1);
+		buildInModes.add(r2, 1, 0, 1, 1);
+		buildInModes.add(r3, 2, 0, 1, 1);
+		BorderedTitledPane buildInGroup = new BorderedTitledPane(Translation.DIALOG_SETTINGS_RENDERING_LAYERS, buildInModes);
 
-			var r4 = new RadioButton("?");
-			var r5 = new RadioButton("deep water");
-			var r6 = new RadioButton("no flora");
-
-			var r7 = new RadioButton("#custom1");
-			var r8 = new RadioButton("#custom2");
-			var r9 = new RadioButton("#custom3");
-
-			r1.setToggleGroup(modesRadioGroup);
-			r2.setToggleGroup(modesRadioGroup);
-			r3.setToggleGroup(modesRadioGroup);
-			r4.setToggleGroup(modesRadioGroup);
-			r5.setToggleGroup(modesRadioGroup);
-			r6.setToggleGroup(modesRadioGroup);
-			r7.setToggleGroup(modesRadioGroup);
-			r8.setToggleGroup(modesRadioGroup);
-			r9.setToggleGroup(modesRadioGroup);
-
-			//renderingModeGrid.add(regexHBox, 0, 0, 15, 1);
-			renderingModesGrid.add(r1, 0, 0, 5, 1);
-			renderingModesGrid.add(r2, 5, 0, 5, 1);
-			renderingModesGrid.add(r3, 10, 0, 5, 1);
-
-			renderingModesGrid.add(r4, 0, 1, 5, 1);
-			renderingModesGrid.add(r5, 5, 1, 5, 1);
-			renderingModesGrid.add(r6, 10, 1, 5, 1);
-
-			renderingModesGrid.add(r7, 0, 2, 5, 1);
-			renderingModesGrid.add(r8, 5, 2, 5, 1);
-			renderingModesGrid.add(r9, 10, 2, 5, 1);
-		}
-
+		VBox regexGroupNode = new VBox();
+		regexGroupNode.setSpacing(10);
+		GridPane regexModes = createGrid(3);
+		regexModes.add(r4, 0, 0, 1, 1);
+		regexModes.add(r5, 1, 0, 1, 1);
+		regexModes.add(r6, 2, 0, 1, 1);
+		regexModes.add(r7, 0, 1, 1, 1);
+		regexModes.add(r8, 1, 1, 1, 1);
+		regexModes.add(r9, 2, 1, 1, 1);
 		HBox regexBox = new HBox();
-
 		{
 			regexBox.setSpacing(10);
 
@@ -372,14 +351,13 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 			left.setSpacing(10);
 			//left.setAlignment(Pos.CENTER);
 			left.getChildren().add(new Label("Regex:"));
-			left.getChildren().add(new Label("Match group:"));
 			left.getChildren().add(new Label("Mapping:"));
 
 			GridPane right = new GridPane();
 			right.setVgap(10);
 			right.setHgap(10);
 			ArrayList<ColumnConstraints> cols = new ArrayList<>();
-			int colCount = 8;
+			int colCount = 4;
 			for(int i=0;i<colCount;i++){
 				var newColumn = new ColumnConstraints();
 				newColumn.setPercentWidth((double)100/colCount);
@@ -387,16 +365,9 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 			}
 			right.getColumnConstraints().addAll(cols);
 
-			right.add(new TextField(), 0, 0, 8, 1);
+			right.add(new TextField(), 0, 0, 2, 1);
+			right.add(createLabelTextField(new Label("Matching group:"), new TextField("")), 2, 0, 2, 1);
 
-
-			right.add(new TextField(), 0, 1, 2, 1);
-			right.add(createLabelTextField(new Label("Else:"), new TextField("air")), 2, 1, 3, 1);
-			var matchPropertyListBox = new ComboBox<String>();
-			matchPropertyListBox.getItems().add("Block");
-			matchPropertyListBox.getItems().add("Biome");
-			matchPropertyListBox.setValue("Block");
-			right.add(matchPropertyListBox, 5, 1, 3, 1);
 
 			var ta = new TextArea("");
 			ta.setMinWidth(0);
@@ -404,20 +375,32 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 			ta.setPrefColumnCount(0);
 			ta.setMaxHeight(ta.getFont().getSize() * 2 * 2);
 
-			right.add(ta, 0, 2, 8, 2);
+			right.add(ta, 0, 1, 4, 2);
 
 			HBox.setHgrow(right, Priority.ALWAYS);
 			regexBox.getChildren().addAll(left, right);
 		}
+		regexGroupNode.getChildren().add(regexModes);
+		regexGroupNode.getChildren().add(new Label(""));
+		regexGroupNode.getChildren().add(regexBox);
+		BorderedTitledPane regexGroup = new BorderedTitledPane(Translation.DIALOG_SETTINGS_RENDERING_LAYERS, regexGroupNode);
 
-		renderingMode.getChildren().add(regexBtnBox);
-		renderingMode.getChildren().add(new Label(""));
-		renderingMode.getChildren().add(renderingModesGrid);
-		renderingMode.getChildren().add(new Label(""));
-		renderingMode.getChildren().add(regexBox);
+
+		renderingMode.getChildren().add(buildInGroup);
+		renderingMode.getChildren().add(regexGroup);
+
+		//renderingMode.getChildren().add(regexBtnBox);
+		//renderingMode.getChildren().add(new Label(""));
+		//renderingMode.getChildren().add(renderingModesGrid);
+		//renderingMode.getChildren().add(new Label(""));
+		//renderingMode.getChildren().add(regexBox);
 
 
 		BorderedTitledPane mode = new BorderedTitledPane(Translation.DIALOG_SETTINGS_RENDERING_LAYERS, renderingMode);
+
+
+
+
 
 
 		GridPane backgroundGrid = createGrid();
@@ -550,6 +533,20 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 		for (int i = 0; i < value.length; i++) {
 			grid.add(withAlignment(value[i]), i + 1, y, value.length == 1 ? 2 : 1, 1);
 		}
+	}
+
+	private GridPane createGrid(int columns){
+		GridPane grid = new GridPane();
+		grid.setVgap(10);
+		grid.setHgap(10);
+		ArrayList<ColumnConstraints> cols = new ArrayList<>();
+		for(int i=0;i<columns;i++){
+			var newColumn = new ColumnConstraints();
+			newColumn.setPercentWidth((double)100/columns);
+			cols.add(newColumn);
+		}
+		grid.getColumnConstraints().addAll(cols);
+		return grid;
 	}
 
 	private Slider createSlider(int min, int max, int steps, int init) {

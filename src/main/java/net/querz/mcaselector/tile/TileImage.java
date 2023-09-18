@@ -164,7 +164,7 @@ public final class TileImage {
 						ConfigProvider.WORLD.getRenderHeight()
 				);
 			} else {
-				VersionController.getChunkRenderer(dataVersion).drawChunk(
+				VersionController.getChunkRenderer(dataVersion).drawRegex(
 						chunkData.getData(),
 						VersionController.getColorMapping(dataVersion),
 						x, z, scale,
@@ -173,7 +173,7 @@ public final class TileImage {
 						terrainHeights,
 						waterHeights,
 						ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater(),
-						ConfigProvider.WORLD.getTintBiomes() ? -1 : 1,
+						ConfigProvider.WORLD.getTintBiomes(),
 						ConfigProvider.WORLD.getRenderHeight()
 				);
 			}

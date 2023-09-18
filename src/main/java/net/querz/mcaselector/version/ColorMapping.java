@@ -8,9 +8,14 @@ public interface ColorMapping {
 	int DEFAULT_WATER_TINT = 0x3f76e4;
 
 	// returns a color based on the block data given as the parameter
-	int getRGB(Object o, int biome);
+	int getOnlyRGB(Object o);
 
+	int getRGB(Object o, int biome);
 	int getRGB(Object o, String biome);
+
+	int applyBiomeTint(String name, int biome, int color);
+	int applyBiomeTint(String name, String biome, int color);
+
 
 	boolean isFoliage(Object o);
 

@@ -16,12 +16,99 @@ import net.querz.nbt.ListTag;
 import java.util.regex.Matcher;
 
 public class Anvil117ChunkRenderer implements ChunkRenderer {
+	@Override
+	public void drawChunk(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, int height) {
+		ListTag sections = Helper.getSectionsFromLevelFromRoot(root, "Sections");
+		if (sections == null) {
+			return;
+		}
 
+		CompoundTag level = Helper.tagFromCompound(root, "Level");
 
-	//static Matcher matcher = PATTERN.matcher("");
+		int absHeight = height + 64;
+
+		ListTag[] palettes = new ListTag[24];
+		long[][] blockStatesArray = new long[24][];
+		sections.forEach(s -> {
+			ListTag p = Helper.tagFromCompound(s, "Palette");
+			long[] b = Helper.longArrayFromCompound(s, "BlockStates");
+			int y = Helper.numberFromCompound(s, "Y", -5).intValue();
+			if (y >= -4 && y <= 19 && p != null && b != null) {
+				palettes[y + 4] = p;
+				blockStatesArray[y + 4] = b;
+			}
+		});
+
+		int[] biomes = Helper.intArrayFromCompound(level, "Biomes");
+
+		for (int cx = 0; cx < Tile.CHUNK_SIZE; cx += scale) {
+			zLoop:
+			for (int cz = 0; cz < Tile.CHUNK_SIZE; cz += scale) {
+
+				// loop over sections
+				boolean waterDepth = false;
+				for (int i = palettes.length - (24 - (absHeight >> 4)); i >= 0; i--) {
+					if (blockStatesArray[i] == null) {
+						continue;
+					}
+
+					long[] blockStates = blockStatesArray[i];
+					ListTag palette = palettes[i];
+
+					int sectionHeight = (i - 4) * Tile.CHUNK_SIZE;
+
+					int bits = blockStates.length >> 6;
+					int clean = ((int) Math.pow(2, bits) - 1);
+
+					int startHeight;
+					if (absHeight >> 4 == i) {
+						startHeight = Tile.CHUNK_SIZE - (16 - absHeight % 16);
+					} else {
+						startHeight = Tile.CHUNK_SIZE - 1;
+					}
+
+					for (int cy = startHeight; cy >= 0; cy--) {
+						int paletteIndex = getPaletteIndex(getIndex(cx, cy, cz), blockStates, bits, clean);
+						CompoundTag blockData = palette.getCompound(paletteIndex);
+
+						if (isEmpty(blockData)) {
+							continue;
+						}
+
+						int biome = getBiomeAtBlock(biomes, cx, sectionHeight + cy, cz);
+						biome = MathUtil.clamp(biome, 0, 255);
+
+						int regionIndex = ((z + cz / scale) * (Tile.SIZE / scale) + (x + cx / scale));
+						if (water) {
+							if (!waterDepth) {
+								pixelBuffer[regionIndex] = colorMapping.getRGB(blockData, biome); // water color
+								waterHeights[regionIndex] = (short) (sectionHeight + cy); // height of highest water or terrain block
+							}
+							if (isWater(blockData)) {
+								waterDepth = true;
+								continue;
+							} else if (isWaterlogged(blockData)) {
+								pixelBuffer[regionIndex] = colorMapping.getRGB(waterDummy, biome); // water color
+								waterPixels[regionIndex] = colorMapping.getRGB(blockData, biome); // color of waterlogged block
+								waterHeights[regionIndex] = (short) (sectionHeight + cy);
+								terrainHeights[regionIndex] = (short) (sectionHeight + cy - 1); // "height" of bottom of water, which will just be 1 block lower so shading works
+								continue zLoop;
+							} else {
+								waterPixels[regionIndex] = colorMapping.getRGB(blockData, biome); // color of block at bottom of water
+							}
+						} else {
+							pixelBuffer[regionIndex] = colorMapping.getRGB(blockData, biome);
+						}
+						terrainHeights[regionIndex] = (short) (sectionHeight + cy); // height of bottom of water
+						continue zLoop;
+					}
+				}
+			}
+		}
+	}
 
 	@Override
-	public void drawChunk(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, int defaultBiome, int height) {
+	public void drawRegex(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, boolean applyBiomeTint, int height) {
 		ListTag sections = Helper.getSectionsFromLevelFromRoot(root, "Sections");
 		if (sections == null) {
 			return;
@@ -119,48 +206,16 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 					int bits = blockStates.length >> 6;
 					int clean = (int) Math.pow(2, bits) - 1;
 					int paletteIndex = getPaletteIndex(getIndex(cx, indexCY, cz), blockStates, bits, clean);
-					blockData = palette.getCompound(paletteIndex);
-					String name = blockData.getString("Name");
-					//blockData = new CompoundTag();
-					blockData.putString("Name", RegexMapping.code(name));
+					blockData = code(palette.getCompound(paletteIndex));
 					if(isEmpty(blockData)) continue zLoop;
 
 					biome = getBiomeAtBlock(biomes, cx, height - index, cz);
 					biome = MathUtil.clamp(biome, 0, 255);
-					biome = defaultBiome == -1 ? biome : defaultBiome;
 				}
-				pixelBuffer[regionIndex] = colorMapping.getRGB(blockData, biome);
+				pixelBuffer[regionIndex] = getColor(colorMapping, blockData, biome, applyBiomeTint);
 				if (water) waterPixels[regionIndex] = pixelBuffer[regionIndex];
 				terrainHeights[regionIndex] = (short) (height - index);
 				if (water) waterHeights[regionIndex] = terrainHeights[regionIndex];
-
-				/*int color;
-				int mappedColor = RegexMapping.colorcode(switch (Main.PROPERTY){
-					case "BLOCK" -> Helper.stringFromCompound(blockData, "Name", "");
-					case "BIOME" -> BiomeRegistry.toName(biome);
-					default -> "";
-				});
-				color = mappedColor;
-				if(color == Integer.MIN_VALUE) {
-					int defColor = switch (Main.PROPERTY){
-						case "BLOCK" -> colorMapping.getRGB(blockData, biome);
-						case "BIOME" -> Integer.MIN_VALUE;
-						default -> Integer.MIN_VALUE;
-					};
-					color = defColor;
-				}
-				if(color == Integer.MIN_VALUE) continue;
-
-				if(Main.PROPERTY.equals("BLOCK")){
-					terrainHeights[regionIndex] = (short) (height - index);
-					if (water) waterHeights[regionIndex] = terrainHeights[regionIndex];
-
-					//color = colorMapping.applyBiomeTint(Helper.stringFromCompound(blockData, "Name", ""), biome, color);
-				}
-
-				pixelBuffer[regionIndex] = color;
-				if (water) waterPixels[regionIndex] = pixelBuffer[regionIndex];*/
-
 
 				Main.timeLogic.addAndGet((int) (System.currentTimeMillis() - nowf));
 
@@ -189,8 +244,7 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 
 						for (int cy = startHeight; cy >= 0; cy--) {
 							int paletteIndex = getPaletteIndex(getIndex(cx, cy, cz), blockStates, bits, clean);
-							CompoundTag wblockData = palette.getCompound(paletteIndex);
-							wblockData.putString("Name", RegexMapping.code(wblockData.getString("Name")));
+							CompoundTag wblockData = code(palette.getCompound(paletteIndex));
 
 							if (isWater(wblockData)) {
 								continue;
@@ -200,12 +254,12 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 							wbiome = MathUtil.clamp(wbiome, 0, 255);
 
 							if (isWaterlogged(wblockData)) {
-								pixelBuffer[regionIndex] = colorMapping.getRGB(waterDummy, wbiome); // water color
-								waterPixels[regionIndex] = colorMapping.getRGB(wblockData, wbiome); // color of waterlogged block
+								pixelBuffer[regionIndex] = getColor(colorMapping, waterDummy, wbiome, applyBiomeTint); // water color
+								waterPixels[regionIndex] = getColor(colorMapping, wblockData, wbiome, applyBiomeTint); // color of waterlogged block
 								waterHeights[regionIndex] = (short) (sectionHeight + cy);
 								terrainHeights[regionIndex] = (short) (sectionHeight + cy - 1); // "height" of bottom of water, which will just be 1 block lower so shading works
 							} else {
-								waterPixels[regionIndex] = colorMapping.getRGB(wblockData, wbiome); // color of block at bottom of water
+								waterPixels[regionIndex] = getColor(colorMapping, wblockData, wbiome, applyBiomeTint); // color of block at bottom of water
 								terrainHeights[regionIndex] = (short) (sectionHeight + cy);
 							}
 
@@ -413,5 +467,21 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 		int blockStatesIndex = index / indicesPerLong;
 		int startBit = (index % indicesPerLong) * bits;
 		return (int) (blockStates[blockStatesIndex] >> startBit) & clean;
+	}
+
+	private int getColor(ColorMapping colorMapping, CompoundTag blockData, int biome, boolean applyBiomeTint){
+		String name = blockData.getString("Name");
+		int color = RegexMapping.colorcode(RegexMapping.encode(name));
+		if(color == Integer.MIN_VALUE) color = colorMapping.getOnlyRGB(blockData);
+		if(applyBiomeTint) color = colorMapping.applyBiomeTint(name, biome, color);
+		return color;
+	}
+	private CompoundTag code(CompoundTag blockData){
+		String name = blockData.getString("Name"), mapping = RegexMapping.code(name);
+		if(!name.equals(mapping)) {
+			blockData = blockData.copy();
+			blockData.putString("Name", mapping);
+		}
+		return blockData;
 	}
 }

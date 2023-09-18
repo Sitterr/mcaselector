@@ -88,12 +88,27 @@ public class Anvil112ColorMapping implements ColorMapping {
 	}
 
 	@Override
+	public int getOnlyRGB(Object blockID){
+		return mapping.getOrDefault((int) blockID, 0xFF000000);
+	}
+
+	@Override
 	public int getRGB(Object blockID, int biome) {
-		return applyBiomeTint((int) blockID >> 4, biome, mapping.getOrDefault((int) blockID, 0xFF000000));
+		return applyBiomeTint((int) blockID >> 4, biome, getOnlyRGB(blockID));
 	}
 
 	@Override
 	public int getRGB(Object o, String biome) {
+		throw new UnsupportedOperationException("color mapping for 1.12 does not support biome names");
+	}
+
+	@Override
+	public int applyBiomeTint(String name, int biome, int color){
+		return applyBiomeTint(0, biome, color);
+	}
+
+	@Override
+	public int applyBiomeTint(String name, String biome, int color){
 		throw new UnsupportedOperationException("color mapping for 1.12 does not support biome names");
 	}
 

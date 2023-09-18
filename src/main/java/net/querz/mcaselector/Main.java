@@ -31,12 +31,9 @@ public class Main {
 
 	public static final String EXPERIMENTAL = "(?<CAPTURE>l)";
 
-	public static final Pattern PATTERN = Pattern.compile(EXPERIMENTAL);
+	public static final Pattern PATTERN = Pattern.compile(DEFAULT);
 	public static final String GROUP = "CAPTURE";
-
-	public static final String PROPERTY = "BLOCK";
-
-	public static final String CUSTOM_MAPPING = "lava=l;l=gold_block;air=a;cave_air=a;barrier=a;structure_void=a;light=a;water=w;";
+	public static final String CUSTOM_MAPPING = "water=w;w=#e44d3f;air=a;cave_air=a;barrier=a;structure_void=a;light=a;";
 
 	public static void main(String[] args) throws ExecutionException, InterruptedException {
 

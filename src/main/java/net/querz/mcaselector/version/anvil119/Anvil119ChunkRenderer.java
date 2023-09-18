@@ -13,7 +13,7 @@ import static net.querz.mcaselector.validation.ValidationHelper.silent;
 public class Anvil119ChunkRenderer implements ChunkRenderer {
 
 	@Override
-	public void drawChunk(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, int defaultBiome, int height) {
+	public void drawChunk(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, int height) {
 		ListTag sections = Helper.tagFromCompound(root, "sections");
 		if (sections == null) {
 			return;
@@ -81,7 +81,6 @@ public class Anvil119ChunkRenderer implements ChunkRenderer {
 						}
 
 						String biome = getBiomeAtBlock(biomeIndices, biomesPalette, cx, cy, cz, biomeBits);
-						biome = defaultBiome == -1 ? biome : BiomeRegistry.toName(defaultBiome);
 
 						int regionIndex = (z + cz / scale) * (Tile.SIZE / scale) + (x + cx / scale);
 						if (water) {

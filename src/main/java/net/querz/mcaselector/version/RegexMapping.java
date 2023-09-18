@@ -17,7 +17,7 @@ public class RegexMapping {
     static ArrayList<Character> available_chars;
     static HashMap<String, Character> map1 = new HashMap<>();
     static HashMap<Character, String> map2 = new HashMap<>();
-    static HashMap<String, Integer> map3 = new HashMap<>();
+    static HashMap<Character, Integer> map3 = new HashMap<>();
 
     public static char encode(String s){
         s = TextHelper.parseBlockName(s);
@@ -35,10 +35,10 @@ public class RegexMapping {
         return decode == null ? s : decode;
     }
 
-    public static int colorcode(String s){
+    public static int colorcode(char c){
         //s = TextHelper.parseBlockName(s);
-        if(!map3.containsKey(s)) return Integer.MIN_VALUE;
-        return map3.get(s);
+        if(!map3.containsKey(c)) return Integer.MIN_VALUE;
+        return map3.get(c);
     }
 
     public static void readCustomMapping(String customMapping){
@@ -46,7 +46,7 @@ public class RegexMapping {
 
         final Pattern TYPE1 = Pattern.compile("^([^#]*?)=([\\w\\d])$"); // mapping name to char
         final Pattern TYPE2 = Pattern.compile("^([\\w\\d])=([^#]*)"); // mapping char to name
-        final Pattern TYPE3 = Pattern.compile("^(.*?)=#([A-F0-9]{6})"); // mapping name to color
+        final Pattern TYPE3 = Pattern.compile("^(.*?)=#([a-fA-F0-9]{6})"); // mapping name to color
 
         String[] mappings = customMapping.split(";");
         for (String mapping : mappings) {
@@ -65,10 +65,10 @@ public class RegexMapping {
 
                 map2.put(ch, blockName);
             } else if(m3.matches()){
-                String name = m3.group(1);
+                char ch = m3.group(1).charAt(0);
                 String hexColor = m3.group(2);
 
-                map3.put(name, TextHelper.parseInt(hexColor, 16));
+                map3.put(ch, TextHelper.parseInt(hexColor, 16));
             }
         }
     }
