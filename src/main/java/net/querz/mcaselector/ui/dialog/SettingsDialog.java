@@ -19,13 +19,16 @@ import net.querz.mcaselector.config.GlobalConfig;
 import net.querz.mcaselector.config.WorldConfig;
 import net.querz.mcaselector.io.WorldDirectories;
 import net.querz.mcaselector.property.DataProperty;
+import net.querz.mcaselector.regex.BuildInRegex;
 import net.querz.mcaselector.text.Translation;
+import net.querz.mcaselector.tile.TileImage;
 import net.querz.mcaselector.ui.component.FileTextField;
 import net.querz.mcaselector.ui.component.HeightSlider;
 import net.querz.mcaselector.ui.component.TileMapBox;
 import net.querz.mcaselector.ui.UIFactory;
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.Callable;
 
 public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 
@@ -329,20 +332,20 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 		r9.setToggleGroup(modesRadioGroup);
 
 		GridPane buildInModes = createGrid(3);
-		buildInModes.add(r1, 0, 0, 1, 1);
-		buildInModes.add(r2, 1, 0, 1, 1);
-		buildInModes.add(r3, 2, 0, 1, 1);
+		buildInModes.add(createRenderingRadioButton("default", toggleGroup, TileImage.RenderingMode.STANDARD, () -> {}), 0, 0, 1, 1);
+		buildInModes.add(createRenderingRadioButton("layer", toggleGroup, TileImage.RenderingMode.LAYER, () -> {}), 1, 0, 1, 1);
+		buildInModes.add(createRenderingRadioButton("biomes", toggleGroup, TileImage.RenderingMode.BIOMES, () -> {}), 2, 0, 1, 1);
 		BorderedTitledPane buildInGroup = new BorderedTitledPane(Translation.DIALOG_SETTINGS_RENDERING_LAYERS, buildInModes);
 
 		VBox regexGroupNode = new VBox();
 		regexGroupNode.setSpacing(10);
 		GridPane regexModes = createGrid(3);
-		regexModes.add(r4, 0, 0, 1, 1);
-		regexModes.add(r5, 1, 0, 1, 1);
-		regexModes.add(r6, 2, 0, 1, 1);
-		regexModes.add(r7, 0, 1, 1, 1);
-		regexModes.add(r8, 1, 1, 1, 1);
-		regexModes.add(r9, 2, 1, 1, 1);
+		regexModes.add(createRenderingRadioButton("caves", toggleGroup, TileImage.RenderingMode.REGEX, () -> regexRadioButtonOnClick(BuildInRegex.CAVES,false)), 0, 0, 1, 1);
+		regexModes.add(createRenderingRadioButton("no water", toggleGroup, TileImage.RenderingMode.REGEX, () -> regexRadioButtonOnClick(BuildInRegex.NO_WATER,false)), 1, 0, 1, 1);
+		regexModes.add(createRenderingRadioButton("no flora", toggleGroup, TileImage.RenderingMode.REGEX, () -> regexRadioButtonOnClick(BuildInRegex.NO_FLORA,false)), 2, 0, 1, 1);
+		regexModes.add(createRenderingRadioButton("?", toggleGroup, TileImage.RenderingMode.REGEX, () -> regexRadioButtonOnClick(BuildInRegex.DEFAULT,false)), 0, 1, 1, 1);
+		regexModes.add(createRenderingRadioButton("?", toggleGroup, TileImage.RenderingMode.REGEX, () -> regexRadioButtonOnClick(BuildInRegex.DEFAULT,false)), 1, 1, 1, 1);
+		regexModes.add(createRenderingRadioButton("#custom", toggleGroup, TileImage.RenderingMode.REGEX, () -> regexRadioButtonOnClick(BuildInRegex.LAYER,true)), 2, 1, 1, 1);
 		HBox regexBox = new HBox();
 		{
 			regexBox.setSpacing(10);
@@ -559,6 +562,21 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 		slider.setMinorTickCount(majorTicks - 1);
 		slider.setBlockIncrement(steps);
 		return slider;
+	}
+
+	private RadioButton createRenderingRadioButton(String text, ToggleGroup group, TileImage.RenderingMode function, Runnable additionalLoad) {
+		var radio = new RadioButton();
+		radio.setText(text);
+		radio.setToggleGroup(group);
+		radio.setUserData(function);
+		radio.setOnAction(event -> {
+			additionalLoad.run();
+		});
+		return radio;
+	}
+
+	private void regexRadioButtonOnClick(BuildInRegex regex, boolean mutable){
+
 	}
 
 	public static class Result {

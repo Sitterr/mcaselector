@@ -1,5 +1,6 @@
-package net.querz.mcaselector.version;
+package net.querz.mcaselector.regex;
 
+import net.querz.mcaselector.config.ConfigProvider;
 import net.querz.mcaselector.filter.filters.PaletteFilter;
 import net.querz.mcaselector.text.TextHelper;
 import org.apache.logging.log4j.LogManager;
@@ -14,45 +15,60 @@ import java.util.regex.Pattern;
 
 public class RegexMapping {
     private static final Logger LOGGER = LogManager.getLogger(RegexMapping.class);
-    static ArrayList<Character> available_chars;
-    static HashMap<String, Character> map1 = new HashMap<>();
-    static HashMap<Character, String> map2 = new HashMap<>();
-    static HashMap<Character, Integer> map3 = new HashMap<>();
 
-    public static char encode(String s){
+    private HashMap<String, Character> map1;
+    private HashMap<Character, String> map2;
+    private HashMap<Character, Integer> map3;
+    public RegexMapping(HashMap<String, Character> map1, HashMap<Character, String> map2, HashMap<Character, Integer> map3){
+        this.map1 = map1;
+        this.map2 = map2;
+        this.map3 = map3;
+    }
+
+    public char encode(String s){
         s = TextHelper.parseBlockName(s);
-
         return map1.get(s);
     }
 
-    public static String decode(char c){
+    public String decode(char c){
         return map2.get(c);
     }
 
-    public static String code(String s){
+    public String code(String s){
         char encode = encode(s);
         String decode = decode(encode);
         return decode == null ? s : decode;
     }
 
-    public static int colorcode(char c){
+    public int colorcode(char c){
         //s = TextHelper.parseBlockName(s);
         if(!map3.containsKey(c)) return Integer.MIN_VALUE;
         return map3.get(c);
     }
 
-    public static void readCustomMapping(String customMapping){
+
+
+    private static RegexMapping coreMapping;
+    static {
+        coreMapping = setUpCoreMapping();
+    }
+
+    public static RegexMapping readMapping(String customMapping){
         if(!customMapping.endsWith(";")) customMapping = customMapping + ";";
 
-        final Pattern TYPE1 = Pattern.compile("^([^#]*?)=([\\w\\d])$"); // mapping name to char
-        final Pattern TYPE2 = Pattern.compile("^([\\w\\d])=([^#]*)"); // mapping char to name
-        final Pattern TYPE3 = Pattern.compile("^(.*?)=#([a-fA-F0-9]{6})"); // mapping name to color
+        final Pattern TYPE1 = Pattern.compile("^([^#]*?)=([\\w\\d])$"); // encode name to char
+        final Pattern TYPE2 = Pattern.compile("^([\\w\\d])=([^#]*)"); // decode char to name
+        final Pattern TYPE3 = Pattern.compile("^(.*?)=#([a-fA-F0-9]{6})"); // decode char to color
 
-        String[] mappings = customMapping.split(";");
-        for (String mapping : mappings) {
-            Matcher m1 = TYPE1.matcher(mapping);
-            Matcher m2 = TYPE2.matcher(mapping);
-            Matcher m3 = TYPE3.matcher(mapping);
+        HashMap<String, Character> map1 = new HashMap<>(coreMapping.map1);
+        HashMap<Character, String> map2 = new HashMap<>(coreMapping.map2);
+        HashMap<Character, Integer> map3 = new HashMap<>(coreMapping.map3);
+
+        String[] statements = customMapping.split(";");
+        for (String statement : statements) {
+            Matcher m1 = TYPE1.matcher(statement);
+            Matcher m2 = TYPE2.matcher(statement);
+            Matcher m3 = TYPE3.matcher(statement);
 
             if(m1.matches()){
                 String blockName = TextHelper.parseBlockName(m1.group(1));
@@ -71,18 +87,13 @@ public class RegexMapping {
                 map3.put(ch, TextHelper.parseInt(hexColor, 16) | 0xFF000000);
             }
         }
+
+        return new RegexMapping(map1, map2, map3);
     }
+    private static RegexMapping setUpCoreMapping() {
+        ArrayList<Character> available_chars = new ArrayList<>(addFromTo((char) 161, (char) 1500));
 
-
-    static {
-        available_chars = new ArrayList<>();
-        //available_chars.addAll(addFromTo('0', '9'));
-        //available_chars.addAll(addFromTo('a', 'z'));
-        //available_chars.addAll(addFromTo('A', 'Z'));
-
-        available_chars.addAll(addFromTo((char)161, (char)1500));
-
-        map1.put("a", 'a');
+        HashMap<String, Character> map1 = new HashMap<>();
 
         try (BufferedReader bis = new BufferedReader(
                 new InputStreamReader(Objects.requireNonNull(PaletteFilter.class.getClassLoader().getResourceAsStream("mapping/all_block_names.txt"))))) {
@@ -98,6 +109,8 @@ public class RegexMapping {
         } catch (IOException ex) {
             LOGGER.error("error reading mapping/all_block_names.txt", ex);
         }
+
+        return new RegexMapping(map1, new HashMap<>(), new HashMap<>());
     }
     static ArrayList<Character> addFromTo(char from, char to){
         ArrayList<Character> chars = new ArrayList<>();

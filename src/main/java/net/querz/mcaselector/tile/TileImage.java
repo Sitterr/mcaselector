@@ -14,10 +14,12 @@ import net.querz.mcaselector.io.mca.RegionMCAFile;
 import net.querz.mcaselector.math.MathUtil;
 import net.querz.mcaselector.point.Point2f;
 import net.querz.mcaselector.point.Point2i;
+import net.querz.mcaselector.regex.RegexConfig;
 import net.querz.mcaselector.selection.ChunkSet;
 import net.querz.mcaselector.selection.Selection;
 import net.querz.mcaselector.ui.Color;
 import net.querz.mcaselector.io.ImageHelper;
+import net.querz.mcaselector.regex.RegexMapping;
 import net.querz.mcaselector.version.VersionController;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -139,6 +141,10 @@ public final class TileImage {
 		return null;
 	}
 
+	public enum RenderingMode {
+		STANDARD, LAYER, BIOMES, REGEX
+	}
+
 	private static void drawChunkImage(Chunk chunkData, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights) {
 
 		if (chunkData.getData() == null) {
@@ -167,6 +173,9 @@ public final class TileImage {
 				VersionController.getChunkRenderer(dataVersion).drawRegex(
 						chunkData.getData(),
 						VersionController.getColorMapping(dataVersion),
+						RegexConfig.getMapping(),
+						RegexConfig.getPattern(),
+						RegexConfig.getDisplayGroup(),
 						x, z, scale,
 						pixelBuffer,
 						waterPixels,

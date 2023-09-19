@@ -1,19 +1,17 @@
 package net.querz.mcaselector.version.anvil117;
 
-import groovyjarjarantlr4.v4.runtime.atn.PredicateTransition;
 import net.querz.mcaselector.Main;
-import net.querz.mcaselector.io.registry.BiomeRegistry;
 import net.querz.mcaselector.math.MathUtil;
-import net.querz.mcaselector.text.TextHelper;
 import net.querz.mcaselector.tile.Tile;
 import net.querz.mcaselector.version.ChunkRenderer;
 import net.querz.mcaselector.version.ColorMapping;
 import net.querz.mcaselector.version.Helper;
-import net.querz.mcaselector.version.RegexMapping;
+import net.querz.mcaselector.regex.RegexMapping;
 import net.querz.nbt.CompoundTag;
 import net.querz.nbt.ListTag;
 
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Anvil117ChunkRenderer implements ChunkRenderer {
 	@Override
@@ -108,7 +106,7 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 	}
 
 	@Override
-	public void drawRegex(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, boolean applyBiomeTint, int height) {
+	public void drawRegex(CompoundTag root, ColorMapping colorMapping, RegexMapping regexMapping, Pattern regexPattern, String displayGroup, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, boolean applyBiomeTint, int height) {
 		ListTag sections = Helper.getSectionsFromLevelFromRoot(root, "Sections");
 		if (sections == null) {
 			return;
@@ -132,8 +130,8 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 
 		int[] biomes = Helper.intArrayFromCompound(level, "Biomes");
 
-		final Matcher matcher = Main.PATTERN.matcher("");
-		String emptyCollection = Character.toString(RegexMapping.encode("air")).repeat(Tile.CHUNK_SIZE);
+		final Matcher matcher = regexPattern.matcher("");
+		String emptyCollection = Character.toString(regexMapping.encode("air")).repeat(Tile.CHUNK_SIZE);
 
 		for (int cx = 0; cx < Tile.CHUNK_SIZE; cx += scale) {
 			zLoop:
@@ -173,7 +171,7 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 						CompoundTag blockData = palette.getCompound(paletteIndex);
 
 						String block = Helper.stringFromCompound(blockData, "Name", "");
-						names.append(RegexMapping.encode(block));
+						names.append(regexMapping.encode(block));
 					}
 
 					matcher.reset(names);
@@ -206,13 +204,13 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 					int bits = blockStates.length >> 6;
 					int clean = (int) Math.pow(2, bits) - 1;
 					int paletteIndex = getPaletteIndex(getIndex(cx, indexCY, cz), blockStates, bits, clean);
-					blockData = code(palette.getCompound(paletteIndex));
+					blockData = code(palette.getCompound(paletteIndex), regexMapping);
 					if(isEmpty(blockData)) continue zLoop;
 
 					biome = getBiomeAtBlock(biomes, cx, height - index, cz);
 					biome = MathUtil.clamp(biome, 0, 255);
 				}
-				pixelBuffer[regionIndex] = getColor(colorMapping, blockData, biome, applyBiomeTint);
+				pixelBuffer[regionIndex] = getColor(colorMapping, regexMapping, blockData, biome, applyBiomeTint);
 				if (water) waterPixels[regionIndex] = pixelBuffer[regionIndex];
 				terrainHeights[regionIndex] = (short) (height - index);
 				if (water) waterHeights[regionIndex] = terrainHeights[regionIndex];
@@ -244,7 +242,7 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 
 						for (int cy = startHeight; cy >= 0; cy--) {
 							int paletteIndex = getPaletteIndex(getIndex(cx, cy, cz), blockStates, bits, clean);
-							CompoundTag wblockData = code(palette.getCompound(paletteIndex));
+							CompoundTag wblockData = code(palette.getCompound(paletteIndex), regexMapping);
 
 							if (isWater(wblockData)) {
 								continue;
@@ -254,12 +252,12 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 							wbiome = MathUtil.clamp(wbiome, 0, 255);
 
 							if (isWaterlogged(wblockData)) {
-								pixelBuffer[regionIndex] = getColor(colorMapping, waterDummy, wbiome, applyBiomeTint); // water color
-								waterPixels[regionIndex] = getColor(colorMapping, wblockData, wbiome, applyBiomeTint); // color of waterlogged block
+								pixelBuffer[regionIndex] = getColor(colorMapping, regexMapping, waterDummy, wbiome, applyBiomeTint); // water color
+								waterPixels[regionIndex] = getColor(colorMapping, regexMapping, wblockData, wbiome, applyBiomeTint); // color of waterlogged block
 								waterHeights[regionIndex] = (short) (sectionHeight + cy);
 								terrainHeights[regionIndex] = (short) (sectionHeight + cy - 1); // "height" of bottom of water, which will just be 1 block lower so shading works
 							} else {
-								waterPixels[regionIndex] = getColor(colorMapping, wblockData, wbiome, applyBiomeTint); // color of block at bottom of water
+								waterPixels[regionIndex] = getColor(colorMapping, regexMapping, wblockData, wbiome, applyBiomeTint); // color of block at bottom of water
 								terrainHeights[regionIndex] = (short) (sectionHeight + cy);
 							}
 
@@ -469,15 +467,15 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 		return (int) (blockStates[blockStatesIndex] >> startBit) & clean;
 	}
 
-	private int getColor(ColorMapping colorMapping, CompoundTag blockData, int biome, boolean applyBiomeTint){
+	private int getColor(ColorMapping colorMapping, RegexMapping regexMapping, CompoundTag blockData, int biome, boolean applyBiomeTint){
 		String name = blockData.getString("Name");
-		int color = RegexMapping.colorcode(RegexMapping.encode(name));
+		int color = regexMapping.colorcode(regexMapping.encode(name));
 		if(color == Integer.MIN_VALUE) color = colorMapping.getOnlyRGB(blockData);
 		if(applyBiomeTint) color = colorMapping.applyBiomeTint(name, biome, color);
 		return color;
 	}
-	private CompoundTag code(CompoundTag blockData){
-		String name = blockData.getString("Name"), mapping = RegexMapping.code(name);
+	private CompoundTag code(CompoundTag blockData, RegexMapping regexMapping){
+		String name = blockData.getString("Name"), mapping = regexMapping.code(name);
 		CompoundTag newBlockData = blockData;
 		if(!name.equals(mapping)) {
 			newBlockData = blockData.copy();

@@ -8,7 +8,6 @@ import net.querz.mcaselector.logging.Logging;
 import net.querz.mcaselector.ui.Window;
 import net.querz.mcaselector.text.Translation;
 import net.querz.mcaselector.validation.ShutdownHooks;
-import net.querz.mcaselector.version.RegexMapping;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import javax.swing.*;
@@ -31,13 +30,13 @@ public class Main {
 
 	public static final String EXPERIMENTAL = "(?<CAPTURE>l)";
 
-	public static final Pattern PATTERN = Pattern.compile(DEFAULT);
+	public static final String PATTERN = DEEP_WATER;
 	public static final String GROUP = "CAPTURE";
 	public static final String CUSTOM_MAPPING = "water=w;w=#3f58e4;air=a;cave_air=a;barrier=a;structure_void=a;light=a;";
 
 	public static void main(String[] args) throws ExecutionException, InterruptedException {
 
-		RegexMapping.readCustomMapping(Main.CUSTOM_MAPPING);
+		//RegexMapping.globalMapping = RegexMapping.readMapping(Main.CUSTOM_MAPPING);
 
 		//System.out.println((int)RegexMapping.mapToChar("air") + " | " + (int)RegexMapping.mapToChar("cave_air"));
 

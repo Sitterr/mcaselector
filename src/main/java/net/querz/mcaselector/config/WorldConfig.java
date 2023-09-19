@@ -1,6 +1,7 @@
 package net.querz.mcaselector.config;
 
 import com.google.gson.*;
+import net.querz.mcaselector.Main;
 import net.querz.mcaselector.config.adapter.FileAdapter;
 import net.querz.mcaselector.config.adapter.WorldDirectoriesAdapter;
 import net.querz.mcaselector.io.WorldDirectories;
@@ -53,6 +54,10 @@ public class WorldConfig extends Config {
 	private boolean smoothOverlays = DEFAULT_SMOOTH_OVERLAYS;
 	private String tileMapBackground = DEFAULT_TILEMAP_BACKGROUND;
 	private boolean showNonexistentRegions = DEFAULT_SHOW_NONEXISTENT_REGIONS;
+
+	private String regexMapping = Main.CUSTOM_MAPPING;
+	private String regexPattern = Main.PATTERN;
+	private String regexDisplayGroup = Main.GROUP;
 
 	private static final Logger LOGGER = LogManager.getLogger(WorldConfig.class);
 
@@ -178,6 +183,30 @@ public class WorldConfig extends Config {
 	public void setShowNonexistentRegions(boolean showNonexistentRegions) {
 		this.showNonexistentRegions = showNonexistentRegions;
 	}
+
+
+	public String getRegexMapping() {
+		return regexMapping;
+	}
+
+	public void setRegexMapping(String regexMapping) {
+		this.regexMapping = regexMapping;
+	}
+	public String getRegexPattern() {
+		return regexPattern;
+	}
+
+	public void setRegexPattern(String regexPattern) {
+		this.regexPattern = regexPattern;
+	}
+	public String getRegexDisplayGroup() {
+		return regexDisplayGroup;
+	}
+
+	public void setRegexDisplayGroup(String regexDisplayGroup) {
+		this.regexDisplayGroup = regexDisplayGroup;
+	}
+
 
 	@Override
 	public void save() {
