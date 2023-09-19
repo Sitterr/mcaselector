@@ -2,14 +2,12 @@ package net.querz.mcaselector.ui.dialog;
 
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
-import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Line;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.StringConverter;
@@ -19,7 +17,7 @@ import net.querz.mcaselector.config.GlobalConfig;
 import net.querz.mcaselector.config.WorldConfig;
 import net.querz.mcaselector.io.WorldDirectories;
 import net.querz.mcaselector.property.DataProperty;
-import net.querz.mcaselector.regex.BuildInRegex;
+import net.querz.mcaselector.regex.RegexBuild;
 import net.querz.mcaselector.text.Translation;
 import net.querz.mcaselector.tile.TileImage;
 import net.querz.mcaselector.ui.component.FileTextField;
@@ -28,7 +26,6 @@ import net.querz.mcaselector.ui.component.TileMapBox;
 import net.querz.mcaselector.ui.UIFactory;
 import java.io.File;
 import java.util.*;
-import java.util.concurrent.Callable;
 
 public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 
@@ -63,6 +60,11 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 	private final CheckBox debugCheckBox = new CheckBox();
 	private final FileTextField poiField = new FileTextField();
 	private final FileTextField entitiesField = new FileTextField();
+
+	private final ToggleGroup modesRadioGroup = new ToggleGroup();
+	private final TextField regexPattern = new TextField();
+	private final TextField regexDisplayGroup = new TextField();
+	private final TextArea regexMapping = new TextArea();
 
 	private Color regionSelectionColor = ConfigProvider.GLOBAL.getRegionSelectionColor().makeJavaFXColor();
 	private Color chunkSelectionColor = ConfigProvider.GLOBAL.getChunkSelectionColor().makeJavaFXColor();
@@ -141,6 +143,9 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 		layerOnly.setSelected(ConfigProvider.WORLD.getRenderLayerOnly());
 		caves.setSelected(ConfigProvider.WORLD.getRenderCaves());
 		tileMapBackgrounds.getItems().addAll(TileMapBox.TileMapBoxBackground.values());
+		regexPattern.setText(ConfigProvider.WORLD.getRegexPattern());
+		regexDisplayGroup.setText(ConfigProvider.WORLD.getRegexDisplayGroup());
+		regexMapping.setText(ConfigProvider.WORLD.getRegexMapping());
 
 		tileMapBackgrounds.setCellFactory((listView) -> {
 			ListCell<TileMapBox.TileMapBoxBackground> cell = new ListCell<>() {
@@ -311,41 +316,22 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 		//renderingMode.setSpacing(5);
 
 
-		ToggleGroup modesRadioGroup = new ToggleGroup();
-		var r1 = new RadioButton("standard");
-		var r2 = new RadioButton("layer");
-		var r3 = new RadioButton("biome");
-		var r4 = new RadioButton("caves");
-		var r5 = new RadioButton("no water");
-		var r6 = new RadioButton("no flora");
-		var r7 = new RadioButton("?");
-		var r8 = new RadioButton("?");
-		var r9 = new RadioButton("#custom");
-		r1.setToggleGroup(modesRadioGroup);
-		r2.setToggleGroup(modesRadioGroup);
-		r3.setToggleGroup(modesRadioGroup);
-		r4.setToggleGroup(modesRadioGroup);
-		r5.setToggleGroup(modesRadioGroup);
-		r6.setToggleGroup(modesRadioGroup);
-		r7.setToggleGroup(modesRadioGroup);
-		r8.setToggleGroup(modesRadioGroup);
-		r9.setToggleGroup(modesRadioGroup);
 
 		GridPane buildInModes = createGrid(3);
-		buildInModes.add(createRenderingRadioButton("default", toggleGroup, TileImage.RenderingMode.STANDARD, () -> {}), 0, 0, 1, 1);
-		buildInModes.add(createRenderingRadioButton("layer", toggleGroup, TileImage.RenderingMode.LAYER, () -> {}), 1, 0, 1, 1);
-		buildInModes.add(createRenderingRadioButton("biomes", toggleGroup, TileImage.RenderingMode.BIOMES, () -> {}), 2, 0, 1, 1);
+		buildInModes.add(createRenderingRadioButton("default", TileImage.RenderingMode.STANDARD, () -> radioButtonOnClick(null,false)), 0, 0, 1, 1);
+		buildInModes.add(createRenderingRadioButton("layer", TileImage.RenderingMode.LAYER, () -> radioButtonOnClick(null,false)), 1, 0, 1, 1);
+		buildInModes.add(createRenderingRadioButton("biomes", TileImage.RenderingMode.BIOMES, () -> radioButtonOnClick(null,false)), 2, 0, 1, 1);
 		BorderedTitledPane buildInGroup = new BorderedTitledPane(Translation.DIALOG_SETTINGS_RENDERING_LAYERS, buildInModes);
 
 		VBox regexGroupNode = new VBox();
 		regexGroupNode.setSpacing(10);
 		GridPane regexModes = createGrid(3);
-		regexModes.add(createRenderingRadioButton("caves", toggleGroup, TileImage.RenderingMode.REGEX, () -> regexRadioButtonOnClick(BuildInRegex.CAVES,false)), 0, 0, 1, 1);
-		regexModes.add(createRenderingRadioButton("no water", toggleGroup, TileImage.RenderingMode.REGEX, () -> regexRadioButtonOnClick(BuildInRegex.NO_WATER,false)), 1, 0, 1, 1);
-		regexModes.add(createRenderingRadioButton("no flora", toggleGroup, TileImage.RenderingMode.REGEX, () -> regexRadioButtonOnClick(BuildInRegex.NO_FLORA,false)), 2, 0, 1, 1);
-		regexModes.add(createRenderingRadioButton("?", toggleGroup, TileImage.RenderingMode.REGEX, () -> regexRadioButtonOnClick(BuildInRegex.DEFAULT,false)), 0, 1, 1, 1);
-		regexModes.add(createRenderingRadioButton("?", toggleGroup, TileImage.RenderingMode.REGEX, () -> regexRadioButtonOnClick(BuildInRegex.DEFAULT,false)), 1, 1, 1, 1);
-		regexModes.add(createRenderingRadioButton("#custom", toggleGroup, TileImage.RenderingMode.REGEX, () -> regexRadioButtonOnClick(BuildInRegex.LAYER,true)), 2, 1, 1, 1);
+		regexModes.add(createRenderingRadioButton("caves", TileImage.RenderingMode.REGEX_1, () -> radioButtonOnClick(RegexBuild.CAVES,false)), 0, 0, 1, 1);
+		regexModes.add(createRenderingRadioButton("no water", TileImage.RenderingMode.REGEX_2, () -> radioButtonOnClick(RegexBuild.NO_WATER,false)), 1, 0, 1, 1);
+		regexModes.add(createRenderingRadioButton("no flora", TileImage.RenderingMode.REGEX_3, () -> radioButtonOnClick(RegexBuild.NO_FLORA,false)), 2, 0, 1, 1);
+		regexModes.add(createRenderingRadioButton("?", TileImage.RenderingMode.REGEX_4, () -> radioButtonOnClick(RegexBuild.DEFAULT,false)), 0, 1, 1, 1);
+		regexModes.add(createRenderingRadioButton("?", TileImage.RenderingMode.REGEX_5, () -> radioButtonOnClick(RegexBuild.DEFAULT,false)), 1, 1, 1, 1);
+		regexModes.add(createRenderingRadioButton("#custom", TileImage.RenderingMode.REGEX_6, () -> radioButtonOnClick(RegexBuild.fromWorldConfig(),true)), 2, 1, 1, 1);
 		HBox regexBox = new HBox();
 		{
 			regexBox.setSpacing(10);
@@ -368,11 +354,11 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 			}
 			right.getColumnConstraints().addAll(cols);
 
-			right.add(new TextField(), 0, 0, 2, 1);
-			right.add(createLabelTextField(new Label("Matching group:"), new TextField("")), 2, 0, 2, 1);
+			right.add(regexPattern, 0, 0, 2, 1);
+			right.add(createLabelTextField(new Label("Matching group:"), regexDisplayGroup), 2, 0, 2, 1);
 
 
-			var ta = new TextArea("");
+			var ta = regexMapping;
 			ta.setMinWidth(0);
 			ta.setMinHeight(0);
 			ta.setPrefColumnCount(0);
@@ -480,6 +466,10 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 					hSlider.getValue(),
 					layerOnly.isSelected(),
 					caves.isSelected(),
+					(TileImage.RenderingMode)modesRadioGroup.getSelectedToggle().getUserData(),
+					regexPattern.getText(),
+					regexDisplayGroup.getText(),
+					regexMapping.getText(),
 					poiField.getFile(),
 					entitiesField.getFile());
 			}
@@ -564,19 +554,31 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 		return slider;
 	}
 
-	private RadioButton createRenderingRadioButton(String text, ToggleGroup group, TileImage.RenderingMode function, Runnable additionalLoad) {
+	private RadioButton createRenderingRadioButton(String text, TileImage.RenderingMode function, Runnable additionalLoad) {
 		var radio = new RadioButton();
 		radio.setText(text);
-		radio.setToggleGroup(group);
+		radio.setToggleGroup(modesRadioGroup);
 		radio.setUserData(function);
 		radio.setOnAction(event -> {
 			additionalLoad.run();
 		});
+		if(function == ConfigProvider.WORLD.getRenderingMode()){
+			radio.fire();
+		}
+
 		return radio;
 	}
 
-	private void regexRadioButtonOnClick(BuildInRegex regex, boolean mutable){
+	private void radioButtonOnClick(RegexBuild regex, boolean mutable){
+		if(regex == null) regex = RegexBuild.EMPTY;
 
+		regexPattern.setText(regex.getPattern());
+		regexDisplayGroup.setText(regex.getGroup());
+		regexMapping.setText(regex.getMapping());
+
+		regexPattern.setDisable(!mutable);
+		regexDisplayGroup.setDisable(!mutable);
+		regexMapping.setDisable(!mutable);
 	}
 
 	public static class Result {
@@ -594,13 +596,15 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 		public final Locale locale;
 		public final int height;
 		public final boolean layerOnly, caves;
+		public final TileImage.RenderingMode renderingMode;
+		public final String regexPattern,regexDisplayGroup,regexMapping;
 		public final File poi, entities;
 
 		public Result(Locale locale, int processThreads, int writeThreads, int maxLoadedFiles,
-		              Color regionColor, Color chunkColor, Color pasteColor, boolean shade, boolean shadeWater, boolean tintBiomes,
-		              boolean showNonexistentRegions, boolean smoothRendering, boolean smoothOverlays,
-		              TileMapBox.TileMapBoxBackground tileMapBackground, File mcSavesDir, boolean debug, int height,
-		              boolean layerOnly, boolean caves, File poi, File entities) {
+					  Color regionColor, Color chunkColor, Color pasteColor, boolean shade, boolean shadeWater, boolean tintBiomes,
+					  boolean showNonexistentRegions, boolean smoothRendering, boolean smoothOverlays,
+					  TileMapBox.TileMapBoxBackground tileMapBackground, File mcSavesDir, boolean debug, int height,
+					  boolean layerOnly, boolean caves, TileImage.RenderingMode renderingMode, String regexPattern, String regexDisplayGroup, String regexMapping, File poi, File entities) {
 
 			this.locale = locale;
 			this.processThreads = processThreads;
@@ -621,6 +625,10 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 			this.height = height;
 			this.layerOnly = layerOnly;
 			this.caves = caves;
+			this.renderingMode = renderingMode;
+			this.regexPattern = regexPattern;
+			this.regexDisplayGroup = regexDisplayGroup;
+			this.regexMapping = regexMapping;
 			this.poi = poi;
 			this.entities = entities;
 		}

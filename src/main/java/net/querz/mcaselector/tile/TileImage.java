@@ -142,9 +142,9 @@ public final class TileImage {
 	}
 
 	public enum RenderingMode {
-		STANDARD, LAYER, BIOMES, REGEX
+		STANDARD, LAYER, BIOMES,
+		REGEX_1, REGEX_2, REGEX_3, REGEX_4, REGEX_5, REGEX_6,
 	}
-
 	private static void drawChunkImage(Chunk chunkData, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights) {
 
 		if (chunkData.getData() == null) {
@@ -152,25 +152,27 @@ public final class TileImage {
 		}
 		int dataVersion = chunkData.getData().getIntOrDefault("DataVersion", 0);
 		try {
-			if (ConfigProvider.WORLD.getRenderCaves()) {
-				VersionController.getChunkRenderer(dataVersion).drawCaves(
+
+			switch (ConfigProvider.WORLD.getRenderingMode()) {
+				case STANDARD -> VersionController.getChunkRenderer(dataVersion).drawChunk(
 						chunkData.getData(),
 						VersionController.getColorMapping(dataVersion),
 						x, z, scale,
 						pixelBuffer,
+						waterPixels,
 						terrainHeights,
+						waterHeights,
+						ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater(),
 						ConfigProvider.WORLD.getRenderHeight()
 				);
-			} else if (ConfigProvider.WORLD.getRenderLayerOnly()) {
-				VersionController.getChunkRenderer(dataVersion).drawLayer(
+				case LAYER -> VersionController.getChunkRenderer(dataVersion).drawLayer(
 						chunkData.getData(),
 						VersionController.getColorMapping(dataVersion),
 						x, z, scale,
 						pixelBuffer,
 						ConfigProvider.WORLD.getRenderHeight()
 				);
-			} else {
-				VersionController.getChunkRenderer(dataVersion).drawRegex(
+				case REGEX_1, REGEX_2, REGEX_3, REGEX_4, REGEX_5, REGEX_6 -> VersionController.getChunkRenderer(dataVersion).drawRegex(
 						chunkData.getData(),
 						VersionController.getColorMapping(dataVersion),
 						RegexConfig.getMapping(),
@@ -186,6 +188,7 @@ public final class TileImage {
 						ConfigProvider.WORLD.getRenderHeight()
 				);
 			}
+
 		} catch (Exception ex) {
 			LOGGER.warn("failed to draw chunk {}", chunkData.getAbsoluteLocation(), ex);
 

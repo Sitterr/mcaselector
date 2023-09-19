@@ -7,6 +7,7 @@ import net.querz.mcaselector.config.adapter.WorldDirectoriesAdapter;
 import net.querz.mcaselector.io.WorldDirectories;
 import net.querz.mcaselector.logging.GsonNamingStrategy;
 import net.querz.mcaselector.math.Bits;
+import net.querz.mcaselector.tile.TileImage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import java.io.File;
@@ -34,6 +35,7 @@ public class WorldConfig extends Config {
 	public static final boolean DEFAULT_SMOOTH_OVERLAYS = true;
 	public static final String DEFAULT_TILEMAP_BACKGROUND = "BLACK";
 	public static final boolean DEFAULT_SHOW_NONEXISTENT_REGIONS = true;
+	public static final TileImage.RenderingMode DEFAULT_RENDERING_MDOE = TileImage.RenderingMode.STANDARD;
 
 	// transient values
 	private transient File regionDir = null;
@@ -55,9 +57,10 @@ public class WorldConfig extends Config {
 	private String tileMapBackground = DEFAULT_TILEMAP_BACKGROUND;
 	private boolean showNonexistentRegions = DEFAULT_SHOW_NONEXISTENT_REGIONS;
 
-	private String regexMapping = Main.CUSTOM_MAPPING;
-	private String regexPattern = Main.PATTERN;
-	private String regexDisplayGroup = Main.GROUP;
+	private TileImage.RenderingMode renderingMode = DEFAULT_RENDERING_MDOE;
+	private String regexMapping = "";
+	private String regexPattern = "";
+	private String regexDisplayGroup = "";
 
 	private static final Logger LOGGER = LogManager.getLogger(WorldConfig.class);
 
@@ -185,6 +188,13 @@ public class WorldConfig extends Config {
 	}
 
 
+	public TileImage.RenderingMode getRenderingMode() {
+		return renderingMode;
+	}
+
+	public void setRenderingMode(TileImage.RenderingMode renderingMode) {
+		this.renderingMode = renderingMode;
+	}
 	public String getRegexMapping() {
 		return regexMapping;
 	}
@@ -206,7 +216,6 @@ public class WorldConfig extends Config {
 	public void setRegexDisplayGroup(String regexDisplayGroup) {
 		this.regexDisplayGroup = regexDisplayGroup;
 	}
-
 
 	@Override
 	public void save() {

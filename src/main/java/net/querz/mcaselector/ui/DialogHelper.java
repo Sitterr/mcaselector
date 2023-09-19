@@ -19,6 +19,7 @@ import net.querz.mcaselector.selection.ChunkSet;
 import net.querz.mcaselector.selection.ClipboardSelection;
 import net.querz.mcaselector.selection.Selection;
 import net.querz.mcaselector.selection.SelectionData;
+import net.querz.mcaselector.tile.TileImage;
 import net.querz.mcaselector.tile.TileMap;
 import net.querz.mcaselector.property.DataProperty;
 import net.querz.mcaselector.point.Point2i;
@@ -288,7 +289,9 @@ public class DialogHelper {
 				tileMap.getWindow().getTileMapBox().setBackground(r.tileMapBackground.getBackground());
 
 				if (r.height != ConfigProvider.WORLD.getRenderHeight() || r.layerOnly != ConfigProvider.WORLD.getRenderLayerOnly()
-					|| r.shade != ConfigProvider.WORLD.getShade() || r.shadeWater != ConfigProvider.WORLD.getShadeWater() || r.tintBiomes != ConfigProvider.WORLD.getTintBiomes() || r.caves != ConfigProvider.WORLD.getRenderCaves()) {
+					|| r.shade != ConfigProvider.WORLD.getShade() || r.shadeWater != ConfigProvider.WORLD.getShadeWater() || r.tintBiomes != ConfigProvider.WORLD.getTintBiomes() || r.caves != ConfigProvider.WORLD.getRenderCaves()
+					|| r.renderingMode != ConfigProvider.WORLD.getRenderingMode()
+					|| !r.regexPattern.equals(ConfigProvider.WORLD.getRegexPattern()) || !r.regexDisplayGroup.equals(ConfigProvider.WORLD.getRegexDisplayGroup()) || !r.regexMapping.equals(ConfigProvider.WORLD.getRegexMapping())) {
 					ConfigProvider.WORLD.setRenderHeight(r.height);
 					ConfigProvider.WORLD.setRenderLayerOnly(r.layerOnly);
 					ConfigProvider.WORLD.setRenderCaves(r.caves);
@@ -296,6 +299,10 @@ public class DialogHelper {
 					ConfigProvider.WORLD.setShade(r.shade);
 					ConfigProvider.WORLD.setShadeWater(r.shadeWater);
 					ConfigProvider.WORLD.setTintBiomes(r.tintBiomes);
+					ConfigProvider.WORLD.setRenderingMode(r.renderingMode);
+					ConfigProvider.WORLD.setRegexPattern(r.regexPattern);
+					ConfigProvider.WORLD.setRegexDisplayGroup(r.regexDisplayGroup);
+					ConfigProvider.WORLD.setRegexMapping(r.regexMapping);
 					// only clear the cache if the actual image rendering changed
 					CacheHelper.clearAllCache(tileMap);
 				}
