@@ -131,28 +131,28 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 		int[] biomes = Helper.intArrayFromCompound(level, "Biomes");
 
 		final Matcher matcher = regexPattern.matcher("");
+		StringBuilder input = new StringBuilder();
 		String emptyCollection = Character.toString(regexMapping.encode("air")).repeat(Tile.CHUNK_SIZE);
 
 		for (int cx = 0; cx < Tile.CHUNK_SIZE; cx += scale) {
 			zLoop:
 			for (int cz = 0; cz < Tile.CHUNK_SIZE; cz += scale) {
 
-				long now = System.currentTimeMillis();
-
 				int regionIndex = ((z + cz / scale) * (Tile.SIZE / scale) + (x + cx / scale));
+				boolean start = true;
+				int startSkippedBlocks = 0;
+				input.setLength(0);
 
-				StringBuilder names = new StringBuilder();
-				boolean foundMatch = false;
-				int skippedBlocks = 0;
-
-				int i = -1;
-				for (i = palettes.length - (24 - (absHeight >> 4)); i >= 0; i--) {
-					if(foundMatch) break;
+				int i = -1, starti = palettes.length - (24 - (absHeight >> 4));
+				for (i = starti; i >= 0; i--) {
 					if (blockStatesArray[i] == null) {
-						skippedBlocks += Tile.CHUNK_SIZE;
-						names.append(emptyCollection);
+						if(start) {
+							startSkippedBlocks += Tile.CHUNK_SIZE;
+						}
+						input.append(emptyCollection);
 						continue;
 					}
+					start = false;
 
 					long[] blockStates = blockStatesArray[i];
 					ListTag palette = palettes[i];
@@ -171,29 +171,25 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 						CompoundTag blockData = palette.getCompound(paletteIndex);
 
 						String block = Helper.stringFromCompound(blockData, "Name", "");
-						names.append(regexMapping.encode(block));
-					}
-
-					matcher.reset(names);
-					while (matcher.find()) {
-						if (!matcher.group(Main.GROUP).isEmpty()) {
-							foundMatch = true;
-							i++;
-							break;
-						}
+						input.append(regexMapping.encode(block));
 					}
 				}
-				if (!foundMatch) continue;
 
-				Main.timeLoop.addAndGet((int) (System.currentTimeMillis() - now));
+				boolean foundMatch = false;
+				matcher.reset(input);
+				while (matcher.find()) {
+					if (!matcher.group(Main.GROUP).isEmpty()) {
+						foundMatch = true;
+						break;
+					}
+				}
+				if (!foundMatch) continue zLoop;
 
-
-
-				long nowf = System.currentTimeMillis();
 
 
 				int index = /*skippedBlocks +*/ matcher.start(Main.GROUP);
-				if(index < skippedBlocks) continue zLoop;
+				if(index < startSkippedBlocks) continue zLoop;
+				i = starti - index / Tile.CHUNK_SIZE;
 				int indexCY = Tile.CHUNK_SIZE - index % Tile.CHUNK_SIZE - 1;
 				CompoundTag blockData;
 				int biome = -1;
@@ -214,8 +210,6 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 				if (water) waterPixels[regionIndex] = pixelBuffer[regionIndex];
 				terrainHeights[regionIndex] = (short) (height - index);
 				if (water) waterHeights[regionIndex] = terrainHeights[regionIndex];
-
-				Main.timeLogic.addAndGet((int) (System.currentTimeMillis() - nowf));
 
 				if (water && isWater(blockData)) {
 					for (int j = i; j >= 0; j--) {

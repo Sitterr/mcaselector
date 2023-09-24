@@ -14,6 +14,7 @@ import net.querz.mcaselector.io.mca.RegionMCAFile;
 import net.querz.mcaselector.math.MathUtil;
 import net.querz.mcaselector.point.Point2f;
 import net.querz.mcaselector.point.Point2i;
+import net.querz.mcaselector.regex.RegexBuild;
 import net.querz.mcaselector.regex.RegexConfig;
 import net.querz.mcaselector.selection.ChunkSet;
 import net.querz.mcaselector.selection.Selection;
@@ -23,6 +24,8 @@ import net.querz.mcaselector.regex.RegexMapping;
 import net.querz.mcaselector.version.VersionController;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.util.regex.Pattern;
 
 public final class TileImage {
 
@@ -109,7 +112,7 @@ public final class TileImage {
 			short[] terrainHeights = new short[pixels];
 			short[] waterHeights = ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater() && !ConfigProvider.WORLD.getRenderCaves() ? new short[pixels] : null;
 
-			//long startTime = System.currentTimeMillis();
+			long startTime = System.currentTimeMillis();
 			for (int cx = 0; cx < Tile.SIZE_IN_CHUNKS; cx++) {
 				for (int cz = 0; cz < Tile.SIZE_IN_CHUNKS; cz++) {
 					int index = cz  * Tile.SIZE_IN_CHUNKS + cx;
@@ -123,8 +126,8 @@ public final class TileImage {
 					drawChunkImage(data, cx * chunkSize, cz * chunkSize, scale, pixelBuffer, waterPixels, terrainHeights, waterHeights);
 				}
 			}
-			//long estimatedTime = System.currentTimeMillis() - startTime;
-			System.out.println(Main.timeLoop.get() + "|" + Main.timeLogic.get());
+			long estimatedTime = System.currentTimeMillis() - startTime;
+			System.out.println(estimatedTime);
 
 			if (ConfigProvider.WORLD.getRenderCaves()) {
 				flatShade(pixelBuffer, terrainHeights, scale);

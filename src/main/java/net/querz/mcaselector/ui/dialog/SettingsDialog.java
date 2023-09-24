@@ -327,10 +327,10 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 		regexGroupNode.setSpacing(10);
 		GridPane regexModes = createGrid(3);
 		regexModes.add(createRenderingRadioButton("caves", TileImage.RenderingMode.REGEX_1, () -> radioButtonOnClick(RegexBuild.CAVES,false)), 0, 0, 1, 1);
-		regexModes.add(createRenderingRadioButton("no water", TileImage.RenderingMode.REGEX_2, () -> radioButtonOnClick(RegexBuild.NO_WATER,false)), 1, 0, 1, 1);
-		regexModes.add(createRenderingRadioButton("no flora", TileImage.RenderingMode.REGEX_3, () -> radioButtonOnClick(RegexBuild.NO_FLORA,false)), 2, 0, 1, 1);
-		regexModes.add(createRenderingRadioButton("?", TileImage.RenderingMode.REGEX_4, () -> radioButtonOnClick(RegexBuild.DEFAULT,false)), 0, 1, 1, 1);
-		regexModes.add(createRenderingRadioButton("?", TileImage.RenderingMode.REGEX_5, () -> radioButtonOnClick(RegexBuild.DEFAULT,false)), 1, 1, 1, 1);
+		regexModes.add(createRenderingRadioButton("?", TileImage.RenderingMode.REGEX_2, () -> radioButtonOnClick(RegexBuild.SOMETHING1,false)), 1, 0, 1, 1);
+		regexModes.add(createRenderingRadioButton("?", TileImage.RenderingMode.REGEX_3, () -> radioButtonOnClick(RegexBuild.SOMETHING2,false)), 2, 0, 1, 1);
+		regexModes.add(createRenderingRadioButton("no water", TileImage.RenderingMode.REGEX_4, () -> radioButtonOnClick(RegexBuild.NO_WATER,false)), 0, 1, 1, 1);
+		regexModes.add(createRenderingRadioButton("no flora", TileImage.RenderingMode.REGEX_5, () -> radioButtonOnClick(RegexBuild.NO_FLORA,false)), 1, 1, 1, 1);
 		regexModes.add(createRenderingRadioButton("#custom", TileImage.RenderingMode.REGEX_6, () -> radioButtonOnClick(RegexBuild.fromWorldConfig(),true)), 2, 1, 1, 1);
 		HBox regexBox = new HBox();
 		{

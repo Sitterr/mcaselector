@@ -28,12 +28,14 @@ public class RegexBuild {
     }
 
     public static final RegexBuild EMPTY = new RegexBuild("", "", "");
-    public static final RegexBuild DEFAULT = new RegexBuild("^a*(?<CAPTURE>.?)", "CAPTURE", "air=a;cave_air=a;barrier=a;structure_void=a;light=a;");
-    public static final RegexBuild LAYER = new RegexBuild("^(?<CAPTURE>.?)", "CAPTURE", "");
-    public static final RegexBuild DEEP_WATER = new RegexBuild("^a*w{0,20}(?<CAPTURE>.?)", "CAPTURE", "water=w;air=a;cave_air=a;barrier=a;structure_void=a;light=a;");
-    public static final RegexBuild NO_WATER = new RegexBuild("^(a|w)*(?<CAPTURE>.?)", "CAPTURE", "water=w;air=a;cave_air=a;barrier=a;structure_void=a;light=a;");
-    public static final RegexBuild CAVES = new RegexBuild("^a*[^a]+a+(?<CAPTURE>[^a])", "CAPTURE", "air=a;cave_air=a;barrier=a;structure_void=a;light=a;");
+    public static final RegexBuild DEFAULT = new RegexBuild("^a*(?<CAPTURE>.)", "CAPTURE", "air=a;cave_air=a;barrier=a;structure_void=a;light=a;");
+    public static final RegexBuild LAYER = new RegexBuild("^(?<CAPTURE>.)", "CAPTURE", "");
+    public static final RegexBuild DEEP_WATER = new RegexBuild("^a*w{0,20}(?<CAPTURE>.)", "CAPTURE", "water=w;air=a;cave_air=a;barrier=a;structure_void=a;light=a;");
+    public static final RegexBuild NO_WATER = new RegexBuild("^(a|w)*(?<CAPTURE>.)", "CAPTURE", "water=w;air=a;cave_air=a;barrier=a;structure_void=a;light=a;");
     public static final RegexBuild NO_FLORA = new RegexBuild("", "", "");
+    public static final RegexBuild CAVES = new RegexBuild("^a*[^a]+a+(?<CAPTURE>[^a])", "CAPTURE", "air=a;cave_air=a;barrier=a;structure_void=a;light=a;");
+    public static final RegexBuild SOMETHING1 = new RegexBuild("dd(?<CAPTURE>d)", "CAPTURE", "diamond_ore=d;deepslate_diamond_ore=d;");
+    public static final RegexBuild SOMETHING2 = new RegexBuild("", "", "");
 
     //public static final BuildInRegex DEFAULT = new BuildInRegex("", "", "");
 
