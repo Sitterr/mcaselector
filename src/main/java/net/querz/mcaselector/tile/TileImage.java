@@ -132,7 +132,7 @@ public final class TileImage {
 			if (ConfigProvider.WORLD.getRenderCaves()) {
 				flatShade(pixelBuffer, terrainHeights, scale);
 			} else if (ConfigProvider.WORLD.getShade() && !ConfigProvider.WORLD.getRenderLayerOnly()) {
-				shade(pixelBuffer, waterPixels, terrainHeights, waterHeights, scale);
+				shade(pixelBuffer, waterPixels, terrainHeights, waterHeights, scale, Main.ANGLE);
 			}
 
 			writer.setPixels(0, 0, size, size, PixelFormat.getIntArgbPreInstance(), pixelBuffer,  0, size);
@@ -146,7 +146,7 @@ public final class TileImage {
 
 	public enum RenderingMode {
 		STANDARD, LAYER, BIOMES,
-		REGEX_1, REGEX_2, REGEX_3, REGEX_4, REGEX_5, REGEX_6,
+		REGEX_1, REGEX_2, REGEX_3, REGEX_4,
 	}
 	private static void drawChunkImage(Chunk chunkData, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights) {
 
@@ -175,7 +175,14 @@ public final class TileImage {
 						pixelBuffer,
 						ConfigProvider.WORLD.getRenderHeight()
 				);
-				case REGEX_1, REGEX_2, REGEX_3, REGEX_4, REGEX_5, REGEX_6 -> VersionController.getChunkRenderer(dataVersion).drawRegex(
+				case BIOMES -> VersionController.getChunkRenderer(dataVersion).drawBiomes(
+						chunkData.getData(),
+						VersionController.getColorMapping(dataVersion),
+						x, z, scale,
+						pixelBuffer,
+						ConfigProvider.WORLD.getRenderHeight()
+				);
+				case REGEX_1, REGEX_2, REGEX_3, REGEX_4 -> VersionController.getChunkRenderer(dataVersion).drawRegex(
 						chunkData.getData(),
 						VersionController.getColorMapping(dataVersion),
 						RegexConfig.getMapping(),
@@ -219,10 +226,12 @@ public final class TileImage {
 		}
 	}
 
-	private static void shade(int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, int scale) {
+	private static void shade(int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, int scale, double angle) {
 		if (!ConfigProvider.WORLD.getShadeWater() || !ConfigProvider.WORLD.getShade()) {
 			waterHeights = terrainHeights;
 		}
+
+		double radAngle = angle / 180 * Math.PI;
 
 		int size = Tile.SIZE / scale;
 
@@ -255,7 +264,7 @@ public final class TileImage {
 						xShade = ((waterHeights[index + 1]) - (waterHeights[index - 1])) * 2;
 					}
 
-					float shade = xShade + zShade;
+					double shade = Math.sin(radAngle) * zShade + Math.cos(radAngle) * xShade;
 					if (shade < -8) {
 						shade = -8;
 					}

@@ -13,6 +13,10 @@ public interface ChunkRenderer {
 
 	}
 
+	default void drawBiomes(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int height){
+
+	}
+
 	void drawLayer(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int height);
 
 	void drawCaves(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, short[] terrainHeights, int height);

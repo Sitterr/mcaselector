@@ -22,17 +22,7 @@ public class Main {
 	public static AtomicInteger timeLoop = new AtomicInteger(), timeLogic = new AtomicInteger();
 
 
-	public static final String DEFAULT = "^a*(?<CAPTURE>.?)";
-	public static final String LAYER_ONLY = "^(?<CAPTURE>.?)";
-	public static final String WATER_ONLY = "(?<CAPTURE>(w|1))";
-	public static final String DEEP_WATER = "^[a-e]*w{0,20}(?<CAPTURE>.?)";
-	public static final String CAVES_ORIGINAL = "^a*[^a]a+(?<CAPTURE>.?)";
-
-	public static final String EXPERIMENTAL = "(?<CAPTURE>l)";
-
-	public static final String PATTERN = DEEP_WATER;
-	public static final String GROUP = "CAPTURE";
-	public static final String CUSTOM_MAPPING = "water=w;w=#3f58e4;air=a;cave_air=a;barrier=a;structure_void=a;light=a;";
+	public static double ANGLE = 90;
 
 	public static void main(String[] args) throws ExecutionException, InterruptedException {
 

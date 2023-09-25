@@ -1,5 +1,7 @@
 package net.querz.mcaselector.version;
 
+import net.querz.mcaselector.io.registry.BiomeRegistry;
+
 public interface ColorMapping {
 
 	// default tints from plains biome
@@ -16,6 +18,9 @@ public interface ColorMapping {
 	int applyBiomeTint(String name, int biome, int color);
 	int applyBiomeTint(String name, String biome, int color);
 
+	default int getBiomeColor(int biome){
+		return 0;
+	}
 
 	boolean isFoliage(Object o);
 

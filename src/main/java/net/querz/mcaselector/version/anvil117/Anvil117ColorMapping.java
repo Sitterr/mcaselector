@@ -1,5 +1,6 @@
 package net.querz.mcaselector.version.anvil117;
 
+import net.querz.mcaselector.io.registry.BiomeRegistry;
 import net.querz.mcaselector.text.TextHelper;
 import net.querz.mcaselector.version.ColorMapping;
 import net.querz.mcaselector.version.Helper;
@@ -22,6 +23,7 @@ public class Anvil117ColorMapping implements ColorMapping {
 	private final Set<String> grass = new HashSet<>();
 	private final Set<String> foliage = new HashSet<>();
 
+	private final int[] biomeColors = new int[256];
 	private final int[] biomeGrassTints = new int[256];
 	private final int[] biomeFoliageTints = new int[256];
 	private final int[] biomeWaterTints = new int[256];
@@ -84,16 +86,18 @@ public class Anvil117ColorMapping implements ColorMapping {
 			String line;
 			while ((line = bis.readLine()) != null) {
 				String[] elements = line.split(";");
-				if (elements.length != 4) {
+				if (elements.length != 5) {
 					LOGGER.error("invalid line in biome color file: \"{}\"", line);
 					continue;
 				}
 
 				int biomeID = Integer.parseInt(elements[0]);
-				int grassColor = Integer.parseInt(elements[1], 16);
-				int foliageColor = Integer.parseInt(elements[2], 16);
-				int waterColor = Integer.parseInt(elements[3], 16);
+				int biomeColor = Integer.parseInt(elements[1], 16);
+				int grassColor = Integer.parseInt(elements[2], 16);
+				int foliageColor = Integer.parseInt(elements[3], 16);
+				int waterColor = Integer.parseInt(elements[4], 16);
 
+				biomeColors[biomeID] = biomeColor | 0xFF000000;
 				biomeGrassTints[biomeID] = grassColor;
 				biomeFoliageTints[biomeID] = foliageColor;
 				biomeWaterTints[biomeID] = waterColor;
@@ -141,6 +145,11 @@ public class Anvil117ColorMapping implements ColorMapping {
 	@Override
 	public int applyBiomeTint(String name, String biome, int color) {
 		throw new UnsupportedOperationException("color mapping for 1.17 does not support biome names");
+	}
+
+	@Override
+	public int getBiomeColor(int biome) {
+		return biomeColors[biome];
 	}
 
 	@Override

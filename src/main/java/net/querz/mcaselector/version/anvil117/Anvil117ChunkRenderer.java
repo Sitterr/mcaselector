@@ -1,6 +1,7 @@
 package net.querz.mcaselector.version.anvil117;
 
 import net.querz.mcaselector.Main;
+import net.querz.mcaselector.io.registry.BiomeRegistry;
 import net.querz.mcaselector.math.MathUtil;
 import net.querz.mcaselector.tile.Tile;
 import net.querz.mcaselector.version.ChunkRenderer;
@@ -178,7 +179,7 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 				boolean foundMatch = false;
 				matcher.reset(input);
 				while (matcher.find()) {
-					if (!matcher.group(Main.GROUP).isEmpty()) {
+					if (!matcher.group(displayGroup).isEmpty()) {
 						foundMatch = true;
 						break;
 					}
@@ -187,7 +188,7 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 
 
 
-				int index = /*skippedBlocks +*/ matcher.start(Main.GROUP);
+				int index = /*skippedBlocks +*/ matcher.start(displayGroup);
 				if(index < startSkippedBlocks) continue zLoop;
 				i = starti - index / Tile.CHUNK_SIZE;
 				int indexCY = Tile.CHUNK_SIZE - index % Tile.CHUNK_SIZE - 1;
@@ -257,6 +258,76 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 
 							continue zLoop;
 						}
+					}
+				}
+			}
+		}
+	}
+
+	@Override
+	public void drawBiomes(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int height){
+		ListTag sections = Helper.getSectionsFromLevelFromRoot(root, "Sections");
+		if (sections == null) {
+			return;
+		}
+
+		CompoundTag level = Helper.tagFromCompound(root, "Level");
+
+		int absHeight = height + 64;
+
+		ListTag[] palettes = new ListTag[24];
+		long[][] blockStatesArray = new long[24][];
+		sections.forEach(s -> {
+			ListTag p = Helper.tagFromCompound(s, "Palette");
+			long[] b = Helper.longArrayFromCompound(s, "BlockStates");
+			int y = Helper.numberFromCompound(s, "Y", -5).intValue();
+			if (y >= -4 && y <= 19 && p != null && b != null) {
+				palettes[y + 4] = p;
+				blockStatesArray[y + 4] = b;
+			}
+		});
+
+		int[] biomes = Helper.intArrayFromCompound(level, "Biomes");
+
+		for (int cx = 0; cx < Tile.CHUNK_SIZE; cx += scale) {
+			zLoop:
+			for (int cz = 0; cz < Tile.CHUNK_SIZE; cz += scale) {
+
+				for (int i = palettes.length - (24 - (absHeight >> 4)); i >= 0; i--) {
+					if (blockStatesArray[i] == null) {
+						continue;
+					}
+
+					long[] blockStates = blockStatesArray[i];
+					ListTag palette = palettes[i];
+
+					int sectionHeight = (i - 4) * Tile.CHUNK_SIZE;
+
+					int bits = blockStates.length >> 6;
+					int clean = ((int) Math.pow(2, bits) - 1);
+
+					int startHeight;
+					if (absHeight >> 4 == i) {
+						startHeight = Tile.CHUNK_SIZE - (16 - absHeight % 16);
+					} else {
+						startHeight = Tile.CHUNK_SIZE - 1;
+					}
+
+					for (int cy = startHeight; cy >= 0; cy--) {
+						int paletteIndex = getPaletteIndex(getIndex(cx, cy, cz), blockStates, bits, clean);
+						CompoundTag blockData = palette.getCompound(paletteIndex);
+
+						if (isEmpty(blockData)) {
+							continue;
+						}
+
+						int biome = getBiomeAtBlock(biomes, cx, sectionHeight + cy, cz);
+						biome = MathUtil.clamp(biome, 0, 255);
+
+						int regionIndex = ((z + cz / scale) * (Tile.SIZE / scale) + (x + cx / scale));
+						pixelBuffer[regionIndex] = colorMapping.getBiomeColor(biome);
+
+						continue zLoop;
 					}
 				}
 			}
@@ -389,6 +460,11 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 			}
 		}
 	}
+
+
+
+
+
 
 	@Override
 	public CompoundTag minimizeChunk(CompoundTag root) {
