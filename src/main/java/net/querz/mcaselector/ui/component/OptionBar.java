@@ -13,6 +13,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
+import net.querz.mcaselector.Main;
 import net.querz.mcaselector.config.ConfigProvider;
 import net.querz.mcaselector.io.FileHelper;
 import net.querz.mcaselector.selection.ClipboardSelection;
@@ -133,7 +134,8 @@ public class OptionBar extends BorderPane {
 		heightValue.addListener((v, o, n) -> {
 			if (!tileMap.getDisabled()) {
 				heightDisabled.set(true);
-				ConfigProvider.WORLD.setRenderHeight(n.intValue());
+				//ConfigProvider.WORLD.setRenderHeight(n.intValue());
+				Main.ANGLE = hSlider.getValue();
 				CacheHelper.clearAllCacheAsync(tileMap, () -> {
 					heightDisabled.set(false);
 					if (hSlider.getValue() != heightValue.get()) {

@@ -132,7 +132,7 @@ public final class TileImage {
 			if (ConfigProvider.WORLD.getRenderCaves()) {
 				flatShade(pixelBuffer, terrainHeights, scale);
 			} else if (ConfigProvider.WORLD.getShade() && !ConfigProvider.WORLD.getRenderLayerOnly()) {
-				shade(pixelBuffer, waterPixels, terrainHeights, waterHeights, scale, Main.ANGLE);
+				shade2(pixelBuffer, waterPixels, terrainHeights, waterHeights, scale, Main.ANGLE);
 			}
 
 			writer.setPixels(0, 0, size, size, PixelFormat.getIntArgbPreInstance(), pixelBuffer,  0, size);
@@ -222,6 +222,87 @@ public final class TileImage {
 			for (int x = 0; x < size; x++, index++) {
 				int altitudeShade = MathUtil.clamp(16 * terrainHeights[index] / 64, -50, 50);
 				pixelBuffer[index] = Color.shade(pixelBuffer[index], altitudeShade * 4);
+			}
+		}
+	}
+
+	private static void shade2(int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, int scale, double angle) {
+		if (!ConfigProvider.WORLD.getShadeWater() || !ConfigProvider.WORLD.getShade()) {
+			waterHeights = terrainHeights;
+		}
+
+		double radAngle = angle / 180 * Math.PI;
+
+		int size = Tile.SIZE / scale;
+
+		int index = 0;
+		for (int z = 0; z < size; z++) {
+			for (int x = 0; x < size; x++, index++) {
+				float xShade, zShade;
+
+				if (pixelBuffer[index] == 0) {
+					continue;
+				}
+
+				if (terrainHeights[index] != waterHeights[index]) {
+					float ratio = 0.5f - 0.5f / 40f * (float) ((waterHeights[index]) - (terrainHeights[index]));
+					pixelBuffer[index] = Color.blend(pixelBuffer[index], waterPixels[index], ratio);
+				} else {
+
+					// (x, z)
+
+					int srx = (int)(x + 0.5 + -Math.cos(radAngle) * 1);
+					int srz = (int)(z + 0.5 + -Math.sin(radAngle) * 1);
+
+					double shade = 0;
+
+					if(srx < 0 || srx >= size || srz < 0 || srz >= size){
+						shade = 0;
+					} else{
+						shade = -(waterHeights[srz * size + srx] - waterHeights[index]) * 2;
+					}
+
+
+
+					/*
+					if (z == 0) {
+						zShade = (waterHeights[index + size]) - (waterHeights[index]);
+					} else if (z == size - 1) {
+						zShade = (waterHeights[index]) - (waterHeights[index - size]);
+					} else {
+						zShade = ((waterHeights[index + size]) - (waterHeights[index - size])) * 2;
+					}
+
+					if (x == 0) {
+						xShade = (waterHeights[index + 1]) - (waterHeights[index]);
+					} else if (x == size - 1) {
+						xShade = (waterHeights[index]) - (waterHeights[index - 1]);
+					} else {
+						xShade = ((waterHeights[index + 1]) - (waterHeights[index - 1])) * 2;
+					}
+
+					double shade = Math.sin(radAngle) * zShade + Math.cos(radAngle) * xShade;
+					*/
+
+					if (shade < -8) {
+						shade = -8;
+					}
+					if (shade > 8) {
+						shade = 8;
+					}
+
+					int altitudeShade = 16 * (waterHeights[index] - 64) / 255;
+					if (altitudeShade < -4) {
+						altitudeShade = -4;
+					}
+					if (altitudeShade > 24) {
+						altitudeShade = 24;
+					}
+
+					shade += altitudeShade;
+
+					pixelBuffer[index] = Color.shade(pixelBuffer[index], (int) (shade * 8));
+				}
 			}
 		}
 	}
