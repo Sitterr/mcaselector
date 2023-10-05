@@ -3,7 +3,9 @@ package net.querz.mcaselector.version.anvil117;
 import net.querz.mcaselector.Main;
 import net.querz.mcaselector.io.registry.BiomeRegistry;
 import net.querz.mcaselector.math.MathUtil;
+import net.querz.mcaselector.text.TextHelper;
 import net.querz.mcaselector.tile.Tile;
+import net.querz.mcaselector.ui.Color;
 import net.querz.mcaselector.version.ChunkRenderer;
 import net.querz.mcaselector.version.ColorMapping;
 import net.querz.mcaselector.version.Helper;
@@ -11,6 +13,7 @@ import net.querz.mcaselector.regex.RegexMapping;
 import net.querz.nbt.CompoundTag;
 import net.querz.nbt.ListTag;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -265,6 +268,156 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 	}
 
 	@Override
+	public void drawShade2(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, byte[] shades, int x0, int z0, boolean water, int height) {
+		ListTag sections = Helper.getSectionsFromLevelFromRoot(root, "Sections");
+		if (sections == null) {
+			return;
+		}
+		CompoundTag level = Helper.tagFromCompound(root, "Level");
+
+		final int SHADEX = Tile.SIZE / scale + x0, SHADEZ = Tile.SIZE / scale + z0;
+
+		int absHeight = height + 64;
+
+		ListTag[] palettes = new ListTag[24];
+		long[][] blockStatesArray = new long[24][];
+		sections.forEach(s -> {
+			ListTag p = Helper.tagFromCompound(s, "Palette");
+			long[] b = Helper.longArrayFromCompound(s, "BlockStates");
+			int y = Helper.numberFromCompound(s, "Y", -5).intValue();
+			if (y >= -4 && y <= 19 && p != null && b != null) {
+				palettes[y + 4] = p;
+				blockStatesArray[y + 4] = b;
+			}
+		});
+
+		int[] biomes = Helper.intArrayFromCompound(level, "Biomes");
+
+		for (int cx = 0; cx < Tile.CHUNK_SIZE; cx += scale) {
+			for (int cz = 0; cz < Tile.CHUNK_SIZE; cz += scale) {
+
+				int regionIndex = ((z + cz / scale) * (Tile.SIZE / scale) + (x + cx / scale));
+				// loop over sections
+
+				boolean done = false, waterDepth = false;
+				int waterShade = 0, hw = 0;
+
+				int starti = palettes.length - (24 - (absHeight >> 4));
+				for (int i = starti; i >= 0; i--) {
+					if (blockStatesArray[i] == null) {
+						continue;
+					}
+
+					long[] blockStates = blockStatesArray[i];
+					ListTag palette = palettes[i];
+
+					int sectionHeight = (i - 4) * Tile.CHUNK_SIZE;
+
+					int bits = blockStates.length >> 6;
+					int clean = ((int) Math.pow(2, bits) - 1);
+
+					int startHeight;
+					if (absHeight >> 4 == i) {
+						startHeight = Tile.CHUNK_SIZE - (16 - absHeight % 16);
+					} else {
+						startHeight = Tile.CHUNK_SIZE - 1;
+					}
+
+					for (int cy = startHeight; cy >= 0; cy--) {
+						int paletteIndex = getPaletteIndex(getIndex(cx, cy, cz), blockStates, bits, clean);
+						CompoundTag blockData = palette.getCompound(paletteIndex);
+						String blockName = Helper.stringFromCompound(blockData, "Name", "");
+						boolean isEmpty = isEmpty(blockData), isWater = isWater(blockData), isWaterLogged = isWaterlogged(blockData);
+						boolean isSolid = !isEmpty && !isWater && !isWaterLogged;
+
+						int h = absHeight - (i * 16 + cy);
+
+						int x1 = (int)Math.floor((x0 + x + cx / scale) + 1.0 / scale + Main.cosA * (Main.cotgB * h) / scale), z1 = (int)Math.floor((z0 + z + cz / scale) + 1.0 / scale + -Main.sinA * (Main.cotgB * h) / scale);
+						int x2 = (int)Math.floor((x0 + x + cx / scale) + Main.cosA * (Main.cotgB * (h + 1)) / scale), z2 = (int)Math.floor((z0 + z + cz / scale) + -Main.sinA * (Main.cotgB * (h + 1)) / scale);
+
+
+						byte alreadyshade = chechline(shades, SHADEX, x2, z2, x1, z1);
+
+						if(!isEmpty && !done) {
+							int biome = getBiomeAtBlock(biomes, cx, sectionHeight + cy, cz);
+							biome = MathUtil.clamp(biome, 0, 255);
+
+							int blockDataColor = colorMapping.getRGB(blockData, biome);
+							int intensity = 0;
+							if(alreadyshade > 0 && !waterDepth){
+								intensity = (int)(Main.SHADEMOODYNESS * (double)alreadyshade / 10);
+								if(isWater) {
+									waterShade = (int)(0.99 * intensity);
+								}
+							}
+							blockDataColor = Color.shade(blockDataColor, intensity);
+
+							if (water) {
+								if (!waterDepth) {
+									pixelBuffer[regionIndex] = blockDataColor; // water color
+									waterHeights[regionIndex] = (short) (sectionHeight + cy); // height of highest water or terrain block
+								}
+								if (isWater) {
+									waterDepth = true;
+									hw++;
+								} else{
+									if(waterDepth){
+										final double waterAbsorbtion = 0.1;
+										waterShade = MathUtil.clamp((int)(Main.SHADEMOODYNESS * waterAbsorbtion * hw) + waterShade, Main.SHADEMOODYNESS, 0);
+										pixelBuffer[regionIndex] = Color.shade(colorMapping.getRGB(waterDummy, biome), waterShade); // water color
+									}
+
+									if (isWaterLogged) {
+										waterPixels[regionIndex] = blockDataColor; // color of waterlogged block
+										waterHeights[regionIndex] = (short) (sectionHeight + cy);
+										terrainHeights[regionIndex] = (short) (sectionHeight + cy - 1); // "height" of bottom of water, which will just be 1 block lower so shading works
+										done = true;
+									} else {
+										waterPixels[regionIndex] = blockDataColor; // color of block at bottom of water
+										terrainHeights[regionIndex] = (short) (sectionHeight + cy);
+										done = true;
+									}
+								}
+							} else {
+								pixelBuffer[regionIndex] = blockDataColor;
+								terrainHeights[regionIndex] = (short) (sectionHeight + cy);
+								done = true;
+							}
+
+							if(done) waterDepth = false;
+						}
+
+						byte solidness;
+						if(isSolid){
+							if(blockName.contains("_leaves")){
+								solidness = 3;
+							} else if(blockName.contains("stained_glass")) {
+								solidness = 3;
+							} else if(blockName.equals("minecraft:grass") || blockName.equals("tall_grass")) {
+								solidness = 0;
+							} else {
+								solidness = 10;
+							}
+						} else {
+							solidness = 0;
+						}
+
+						if(solidness > 0 && alreadyshade < 10) {
+							setline(shades, solidness, SHADEX, x2, z2, x1, z1);
+							setline(shades, solidness, SHADEX, x2 + 1, z2, x1, z1 - 1);
+							setline(shades, solidness, SHADEX, x2, z2 + 1, x1 - 1, z1);
+						}
+
+					}
+				}
+
+
+
+			}
+		}
+	}
+
+	@Override
 	public void drawBiomes(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int height){
 		ListTag sections = Helper.getSectionsFromLevelFromRoot(root, "Sections");
 		if (sections == null) {
@@ -463,8 +616,59 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 
 
 
+	private void setline(byte[] shades, byte value, int SHADEX, int x1, int z1, int x2, int z2) {
+		int deltax = Math.abs(x2 - x1);
+		int deltaz = Math.abs(z2 - z1);
+		int error = 0;
+		int zz = z1;
 
+		for(int xx = x1; xx <= x2; xx++) {
+			int indx = zz * SHADEX + xx;
+			if(indx >= 0 && indx < shades.length) {
+				byte nv = (byte)(shades[indx] + value);
+				if(nv >= 10) nv = 10;
+				shades[indx] = nv;
+			}
 
+			error = error + deltaz;
+			if(2 * error >= deltax) {
+				zz = zz + 1;
+				error= error - deltax;
+			}
+		}
+	}
+
+	byte chechline(byte[] shades, int SHADEX, int x1, int z1, int x2, int z2){
+		int deltax = Math.abs(x2 - x1);
+		int deltaz = Math.abs(z2 - z1);
+		int error = 0;
+		int zz = z1;
+
+		byte min = 10;
+
+		for(int xx = x1; xx <= x2; xx++) {
+			int indx = zz * SHADEX + xx;
+			if(indx >= 0 && indx < shades.length) {
+				if (min > shades[indx]) {
+					min = shades[indx];
+				}
+			}
+
+			//if(shades[(int)Math.ceil(zz) * SHADEX + (int)Math.floor(xx)] == false){
+			//	return true;
+			//}
+			//if(shades[(int)Math.floor(zz) * SHADEX + (int)Math.ceil(xx)] == false){
+			//	return true;
+			//}
+			error = error + deltaz;
+			if(2 * error >= deltax) {
+				zz = zz + 1;
+				error -= deltax;
+			}
+		}
+
+		return min;
+	}
 
 	@Override
 	public CompoundTag minimizeChunk(CompoundTag root) {

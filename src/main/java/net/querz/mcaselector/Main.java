@@ -22,7 +22,16 @@ public class Main {
 	public static AtomicInteger timeLoop = new AtomicInteger(), timeLogic = new AtomicInteger();
 
 
-	public static double ANGLE = 90;
+	public static int SHADEMOODYNESS = (int)(0.5 * -100);
+	public static double ANGLE = degToRad(90);
+	public static double HEIGHTANGLE = degToRad(5);
+	public static double cosA = round(Math.cos(ANGLE)), sinA = round(Math.sin(ANGLE));
+	public static double cotgB = round(1 / Math.tan(HEIGHTANGLE));
+
+	public static double degToRad(double angle){
+		return angle / 180 * Math.PI;
+	}
+	public static double round(double value){ return Math.round(value * 10000.0) / 10000.0;}
 
 	public static void main(String[] args) throws ExecutionException, InterruptedException {
 

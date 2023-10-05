@@ -321,6 +321,7 @@ public class SettingsDialog extends Dialog<SettingsDialog.Result> {
 		buildInModes.add(createRenderingRadioButton("default", TileImage.RenderingMode.STANDARD, () -> radioButtonOnClick(null,false)), 0, 0, 1, 1);
 		buildInModes.add(createRenderingRadioButton("layer", TileImage.RenderingMode.LAYER, () -> radioButtonOnClick(null,false)), 1, 0, 1, 1);
 		buildInModes.add(createRenderingRadioButton("biomes", TileImage.RenderingMode.BIOMES, () -> radioButtonOnClick(null,false)), 2, 0, 1, 1);
+		buildInModes.add(createRenderingRadioButton("3d shades", TileImage.RenderingMode.SHADE, () -> radioButtonOnClick(null,false)), 0, 1, 1, 1);
 		BorderedTitledPane buildInGroup = new BorderedTitledPane(Translation.DIALOG_SETTINGS_RENDERING_LAYERS, buildInModes);
 
 		VBox regexGroupNode = new VBox();

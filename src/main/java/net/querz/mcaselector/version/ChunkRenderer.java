@@ -17,6 +17,11 @@ public interface ChunkRenderer {
 
 	}
 
+	default void drawShade2(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, byte[] shades, int x0, int z0, boolean water, int height){
+
+	}
+
+
 	void drawLayer(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int height);
 
 	void drawCaves(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, short[] terrainHeights, int height);

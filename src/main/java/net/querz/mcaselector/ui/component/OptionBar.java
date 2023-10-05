@@ -134,8 +134,8 @@ public class OptionBar extends BorderPane {
 		heightValue.addListener((v, o, n) -> {
 			if (!tileMap.getDisabled()) {
 				heightDisabled.set(true);
-				//ConfigProvider.WORLD.setRenderHeight(n.intValue());
-				Main.ANGLE = hSlider.getValue();
+				ConfigProvider.WORLD.setRenderHeight(n.intValue());
+				//Main.HEIGHTANGLE = hSlider.getValue();
 				CacheHelper.clearAllCacheAsync(tileMap, () -> {
 					heightDisabled.set(false);
 					if (hSlider.getValue() != heightValue.get()) {

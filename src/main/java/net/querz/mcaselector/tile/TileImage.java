@@ -112,9 +112,14 @@ public final class TileImage {
 			short[] terrainHeights = new short[pixels];
 			short[] waterHeights = ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater() && !ConfigProvider.WORLD.getRenderCaves() ? new short[pixels] : null;
 
+			int x0 = ((int)Math.ceil(Math.abs(Main.cosA * Main.cotgB * (ConfigProvider.WORLD.getRenderHeight() + 64 + 1))) + 1) / scale;
+			int z0 = ((int)Math.ceil(Math.abs(Main.sinA * Main.cotgB * (ConfigProvider.WORLD.getRenderHeight() + 64 + 1))) + 1) / scale;
+
+			byte[] shades = new byte[(z0 + size) * (x0 + size)];
+
 			long startTime = System.currentTimeMillis();
-			for (int cx = 0; cx < Tile.SIZE_IN_CHUNKS; cx++) {
-				for (int cz = 0; cz < Tile.SIZE_IN_CHUNKS; cz++) {
+			for (int cz = 0; cz < Tile.SIZE_IN_CHUNKS; cz++) {
+				for (int cx = 0; cx < Tile.SIZE_IN_CHUNKS; cx++) {
 					int index = cz  * Tile.SIZE_IN_CHUNKS + cx;
 
 					Chunk data = mcaFile.getChunk(index);
@@ -123,7 +128,7 @@ public final class TileImage {
 						continue;
 					}
 
-					drawChunkImage(data, cx * chunkSize, cz * chunkSize, scale, pixelBuffer, waterPixels, terrainHeights, waterHeights);
+					drawChunkImage(data, cx * chunkSize, cz * chunkSize, scale, pixelBuffer, waterPixels, terrainHeights, waterHeights, shades, x0, z0);
 				}
 			}
 			long estimatedTime = System.currentTimeMillis() - startTime;
@@ -132,10 +137,10 @@ public final class TileImage {
 			if (ConfigProvider.WORLD.getRenderCaves()) {
 				flatShade(pixelBuffer, terrainHeights, scale);
 			} else if (ConfigProvider.WORLD.getShade() && !ConfigProvider.WORLD.getRenderLayerOnly()) {
-				shade2(pixelBuffer, waterPixels, terrainHeights, waterHeights, scale, Main.ANGLE);
+				shade(pixelBuffer, waterPixels, terrainHeights, waterHeights, scale, Main.ANGLE);
 			}
 
-			writer.setPixels(0, 0, size, size, PixelFormat.getIntArgbPreInstance(), pixelBuffer,  0, size);
+			writer.setPixels(0, 0, size, size, PixelFormat.getIntArgbPreInstance(), pixelBuffer, 0, size);
 
 			return finalImage;
 		} catch (Exception ex) {
@@ -145,10 +150,10 @@ public final class TileImage {
 	}
 
 	public enum RenderingMode {
-		STANDARD, LAYER, BIOMES,
+		STANDARD, LAYER, BIOMES, SHADE,
 		REGEX_1, REGEX_2, REGEX_3, REGEX_4,
 	}
-	private static void drawChunkImage(Chunk chunkData, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights) {
+	private static void drawChunkImage(Chunk chunkData, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, byte[] shades, int x0, int z0) {
 
 		if (chunkData.getData() == null) {
 			return;
@@ -173,6 +178,19 @@ public final class TileImage {
 						VersionController.getColorMapping(dataVersion),
 						x, z, scale,
 						pixelBuffer,
+						ConfigProvider.WORLD.getRenderHeight()
+				);
+				case SHADE -> VersionController.getChunkRenderer(dataVersion).drawShade2(
+						chunkData.getData(),
+						VersionController.getColorMapping(dataVersion),
+						x, z, scale,
+						pixelBuffer,
+						waterPixels,
+						terrainHeights,
+						waterHeights,
+						shades,
+						x0, z0,
+						ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater(),
 						ConfigProvider.WORLD.getRenderHeight()
 				);
 				case BIOMES -> VersionController.getChunkRenderer(dataVersion).drawBiomes(
@@ -226,93 +244,10 @@ public final class TileImage {
 		}
 	}
 
-	private static void shade2(int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, int scale, double angle) {
+	private static void shade(int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, int scale, double radAngle) {
 		if (!ConfigProvider.WORLD.getShadeWater() || !ConfigProvider.WORLD.getShade()) {
 			waterHeights = terrainHeights;
 		}
-
-		double radAngle = angle / 180 * Math.PI;
-
-		int size = Tile.SIZE / scale;
-
-		int index = 0;
-		for (int z = 0; z < size; z++) {
-			for (int x = 0; x < size; x++, index++) {
-				float xShade, zShade;
-
-				if (pixelBuffer[index] == 0) {
-					continue;
-				}
-
-				if (terrainHeights[index] != waterHeights[index]) {
-					float ratio = 0.5f - 0.5f / 40f * (float) ((waterHeights[index]) - (terrainHeights[index]));
-					pixelBuffer[index] = Color.blend(pixelBuffer[index], waterPixels[index], ratio);
-				} else {
-
-					// (x, z)
-
-					int srx = (int)(x + 0.5 + -Math.cos(radAngle) * 1);
-					int srz = (int)(z + 0.5 + -Math.sin(radAngle) * 1);
-
-					double shade = 0;
-
-					if(srx < 0 || srx >= size || srz < 0 || srz >= size){
-						shade = 0;
-					} else{
-						shade = -(waterHeights[srz * size + srx] - waterHeights[index]) * 2;
-					}
-
-
-
-					/*
-					if (z == 0) {
-						zShade = (waterHeights[index + size]) - (waterHeights[index]);
-					} else if (z == size - 1) {
-						zShade = (waterHeights[index]) - (waterHeights[index - size]);
-					} else {
-						zShade = ((waterHeights[index + size]) - (waterHeights[index - size])) * 2;
-					}
-
-					if (x == 0) {
-						xShade = (waterHeights[index + 1]) - (waterHeights[index]);
-					} else if (x == size - 1) {
-						xShade = (waterHeights[index]) - (waterHeights[index - 1]);
-					} else {
-						xShade = ((waterHeights[index + 1]) - (waterHeights[index - 1])) * 2;
-					}
-
-					double shade = Math.sin(radAngle) * zShade + Math.cos(radAngle) * xShade;
-					*/
-
-					if (shade < -8) {
-						shade = -8;
-					}
-					if (shade > 8) {
-						shade = 8;
-					}
-
-					int altitudeShade = 16 * (waterHeights[index] - 64) / 255;
-					if (altitudeShade < -4) {
-						altitudeShade = -4;
-					}
-					if (altitudeShade > 24) {
-						altitudeShade = 24;
-					}
-
-					shade += altitudeShade;
-
-					pixelBuffer[index] = Color.shade(pixelBuffer[index], (int) (shade * 8));
-				}
-			}
-		}
-	}
-
-	private static void shade(int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, int scale, double angle) {
-		if (!ConfigProvider.WORLD.getShadeWater() || !ConfigProvider.WORLD.getShade()) {
-			waterHeights = terrainHeights;
-		}
-
-		double radAngle = angle / 180 * Math.PI;
 
 		int size = Tile.SIZE / scale;
 
@@ -345,7 +280,7 @@ public final class TileImage {
 						xShade = ((waterHeights[index + 1]) - (waterHeights[index - 1])) * 2;
 					}
 
-					double shade = Math.sin(radAngle) * zShade + Math.cos(radAngle) * xShade;
+					double shade = Math.sin(radAngle) * zShade + -Math.cos(radAngle) * xShade;
 					if (shade < -8) {
 						shade = -8;
 					}
@@ -363,7 +298,13 @@ public final class TileImage {
 
 					shade += altitudeShade;
 
-					pixelBuffer[index] = Color.shade(pixelBuffer[index], (int) (shade * 8));
+					if(ConfigProvider.WORLD.getRenderingMode() == RenderingMode.SHADE){
+						//if(shade > 0)
+							pixelBuffer[index] = Color.shade(pixelBuffer[index], (int) (shade * 3));
+					}else{
+						pixelBuffer[index] = Color.shade(pixelBuffer[index], (int) (shade * 8));
+					}
+
 				}
 			}
 		}

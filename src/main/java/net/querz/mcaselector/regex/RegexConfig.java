@@ -16,9 +16,8 @@ public class RegexConfig {
         return pattern;
     }
 
-    private static String displayGroup = "";
     public static String getDisplayGroup(){
-        return displayGroup;
+        return ConfigProvider.WORLD.getRegexDisplayGroup();
     }
 
     private static RegexMapping mapping;
