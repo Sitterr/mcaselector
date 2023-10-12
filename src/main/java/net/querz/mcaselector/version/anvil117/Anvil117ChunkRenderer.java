@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 
 public class Anvil117ChunkRenderer implements ChunkRenderer {
 	@Override
-	public void drawChunk(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, int height) {
+	public void drawChunk(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, boolean applyBiomeTint, int height) {
 		ListTag sections = Helper.getSectionsFromLevelFromRoot(root, "Sections");
 		if (sections == null) {
 			return;
@@ -79,6 +79,7 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 
 						int biome = getBiomeAtBlock(biomes, cx, sectionHeight + cy, cz);
 						biome = MathUtil.clamp(biome, 0, 255);
+						if(!applyBiomeTint) biome = ColorMapping.DEFAULT_BIOME;
 
 						int regionIndex = ((z + cz / scale) * (Tile.SIZE / scale) + (x + cx / scale));
 						if (water) {
@@ -268,7 +269,7 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 	}
 
 	@Override
-	public void drawShade2(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, byte[] shades, int x0, int z0, boolean water, int height) {
+	public void drawShade2(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean[] shades, int x0, int z0, boolean water, boolean applyBiomeTint, int height) {
 		ListTag sections = Helper.getSectionsFromLevelFromRoot(root, "Sections");
 		if (sections == null) {
 			return;
@@ -332,20 +333,22 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 
 						int h = absHeight - (i * 16 + cy);
 
-						int x1 = (int)Math.floor((x0 + x + cx / scale) + 1.0 / scale + Main.cosA * (Main.cotgB * h) / scale), z1 = (int)Math.floor((z0 + z + cz / scale) + 1.0 / scale + -Main.sinA * (Main.cotgB * h) / scale);
-						int x2 = (int)Math.floor((x0 + x + cx / scale) + Main.cosA * (Main.cotgB * (h + 1)) / scale), z2 = (int)Math.floor((z0 + z + cz / scale) + -Main.sinA * (Main.cotgB * (h + 1)) / scale);
+						int x1 = (int)Math.floor((x0 + x + cx / scale) + Main.cosA * (Main.cotgB * h) / scale), z1 = (int)Math.floor((z0 + z + cz / scale) + -Main.sinA * (Main.cotgB * h) / scale);
+						int x2 = (int)Math.floor(x1 + Main.cosA * Main.cotgB / scale), z2 = (int)Math.floor(z1 + -Main.sinA * Main.cotgB / scale);
 
 
-						byte alreadyshade = chechline(shades, SHADEX, x2, z2, x1, z1);
+
+						boolean alreadyshade = chechline(shades, SHADEX, x2, z2, x1, z1);
 
 						if(!isEmpty && !done) {
 							int biome = getBiomeAtBlock(biomes, cx, sectionHeight + cy, cz);
 							biome = MathUtil.clamp(biome, 0, 255);
+							if(!applyBiomeTint) biome = ColorMapping.DEFAULT_BIOME;
 
 							int blockDataColor = colorMapping.getRGB(blockData, biome);
 							int intensity = 0;
-							if(alreadyshade > 0 && !waterDepth){
-								intensity = (int)(Main.SHADEMOODYNESS * (double)alreadyshade / 10);
+							if(alreadyshade && !waterDepth){
+								intensity = (int)(Main.SHADEMOODYNESS * 1);
 								if(isWater) {
 									waterShade = (int)(0.99 * intensity);
 								}
@@ -387,25 +390,27 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 							if(done) waterDepth = false;
 						}
 
-						byte solidness;
+						boolean solidness;
 						if(isSolid){
 							if(blockName.contains("_leaves")){
-								solidness = 3;
-							} else if(blockName.contains("stained_glass")) {
-								solidness = 3;
-							} else if(blockName.equals("minecraft:grass") || blockName.equals("tall_grass")) {
-								solidness = 0;
+								solidness = true;
+							} else if(blockName.contains("stained_glass") || blockName.equals("minecraft:tinted_glass")) {
+								solidness = true;
+							} else if(blockName.equals("minecraft:grass") || blockName.equals("minecraft:tall_grass")) {
+								solidness = false;
 							} else {
-								solidness = 10;
+								solidness = true;
 							}
 						} else {
-							solidness = 0;
+							solidness = false;
 						}
 
-						if(solidness > 0 && alreadyshade < 10) {
+						if(!alreadyshade && solidness) {
+							int xp = (int)Math.ceil(Main.cosA), zp = -(int)Math.ceil(Main.sinA);
+							//int xp = -1, zp = -1;
 							setline(shades, solidness, SHADEX, x2, z2, x1, z1);
-							setline(shades, solidness, SHADEX, x2 + 1, z2, x1, z1 - 1);
-							setline(shades, solidness, SHADEX, x2, z2 + 1, x1 - 1, z1);
+							setline(shades, solidness, SHADEX, x2 - xp, z2, x1, z1 + zp);
+							setline(shades, solidness, SHADEX, x2, z2 - zp, x1 + xp, z1);
 						}
 
 					}
@@ -616,7 +621,7 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 
 
 
-	private void setline(byte[] shades, byte value, int SHADEX, int x1, int z1, int x2, int z2) {
+	private void setline(boolean[] shades, boolean value, int SHADEX, int x1, int z1, int x2, int z2) {
 		int deltax = Math.abs(x2 - x1);
 		int deltaz = Math.abs(z2 - z1);
 		int error = 0;
@@ -625,9 +630,7 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 		for(int xx = x1; xx <= x2; xx++) {
 			int indx = zz * SHADEX + xx;
 			if(indx >= 0 && indx < shades.length) {
-				byte nv = (byte)(shades[indx] + value);
-				if(nv >= 10) nv = 10;
-				shades[indx] = nv;
+				shades[indx] = value;
 			}
 
 			error = error + deltaz;
@@ -638,19 +641,22 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 		}
 	}
 
-	byte chechline(byte[] shades, int SHADEX, int x1, int z1, int x2, int z2){
+	boolean chechline(boolean[] shades, int SHADEX, int x1, int z1, int x2, int z2){
 		int deltax = Math.abs(x2 - x1);
 		int deltaz = Math.abs(z2 - z1);
 		int error = 0;
+		int br = 0;
 		int zz = z1;
 
-		byte min = 10;
+		boolean min = true;
 
 		for(int xx = x1; xx <= x2; xx++) {
 			int indx = zz * SHADEX + xx;
 			if(indx >= 0 && indx < shades.length) {
-				if (min > shades[indx]) {
+				br++;
+				if (Boolean.compare(min, shades[indx]) > 0) {
 					min = shades[indx];
+					break;
 				}
 			}
 
@@ -743,8 +749,13 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 
 	private int getColor(ColorMapping colorMapping, RegexMapping regexMapping, CompoundTag blockData, int biome, boolean applyBiomeTint){
 		String name = blockData.getString("Name");
-		int color = regexMapping.colorcode(regexMapping.encode(name));
-		if(color == Integer.MIN_VALUE) color = colorMapping.getOnlyRGB(blockData);
+		int color;
+		if(regexMapping != null){
+			color = regexMapping.colorcode(regexMapping.encode(name));
+			if(color == Integer.MIN_VALUE) color = colorMapping.getOnlyRGB(blockData);
+		} else {
+			color = colorMapping.getOnlyRGB(blockData);
+		}
 		if(applyBiomeTint) color = colorMapping.applyBiomeTint(name, biome, color);
 		return color;
 	}

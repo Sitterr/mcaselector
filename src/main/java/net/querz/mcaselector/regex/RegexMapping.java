@@ -54,6 +54,7 @@ public class RegexMapping {
     }
 
     public static RegexMapping readMapping(String customMapping){
+        customMapping = customMapping.replaceAll("\n", "");
         if(!customMapping.endsWith(";")) customMapping = customMapping + ";";
 
         final Pattern TYPE1 = Pattern.compile("^([^#]*?)=([\\w\\d])$"); // encode name to char

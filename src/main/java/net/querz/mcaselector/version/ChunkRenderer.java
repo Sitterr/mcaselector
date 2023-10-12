@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 
 public interface ChunkRenderer {
 
-	void drawChunk(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, int height);
+	void drawChunk(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, boolean applyBiomeTint, int height);
 
 	default void drawRegex(CompoundTag root, ColorMapping colorMapping, RegexMapping regexMapping, Pattern regexPattern, String displayGroup, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, boolean applyBiomeTint, int height){
 
@@ -17,7 +17,7 @@ public interface ChunkRenderer {
 
 	}
 
-	default void drawShade2(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, byte[] shades, int x0, int z0, boolean water, int height){
+	default void drawShade2(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean[] shades, int x0, int z0, boolean water, boolean applyBiomeTint, int height){
 
 	}
 

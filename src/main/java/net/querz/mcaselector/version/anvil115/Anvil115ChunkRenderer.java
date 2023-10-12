@@ -11,7 +11,7 @@ import net.querz.nbt.ListTag;
 public class Anvil115ChunkRenderer implements ChunkRenderer {
 
 	@Override
-	public void drawChunk(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, int height) {
+	public void drawChunk(CompoundTag root, ColorMapping colorMapping, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean water, boolean applyBiomeTint, int height) {
 		ListTag sections = Helper.getSectionsFromLevelFromRoot(root, "Sections");
 		if (sections == null) {
 			return;
@@ -71,6 +71,7 @@ public class Anvil115ChunkRenderer implements ChunkRenderer {
 
 						int biome = getBiomeAtBlock(biomes, cx, sectionHeight + cy, cz);
 						biome = MathUtil.clamp(biome, 0, 255);
+						if(!applyBiomeTint) biome = ColorMapping.DEFAULT_BIOME;
 
 						int regionIndex = ((z + cz / scale) * (Tile.SIZE / scale) + (x + cx / scale));
 						if (water) {

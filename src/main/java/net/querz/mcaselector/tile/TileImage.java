@@ -115,7 +115,7 @@ public final class TileImage {
 			int x0 = ((int)Math.ceil(Math.abs(Main.cosA * Main.cotgB * (ConfigProvider.WORLD.getRenderHeight() + 64 + 1))) + 1) / scale;
 			int z0 = ((int)Math.ceil(Math.abs(Main.sinA * Main.cotgB * (ConfigProvider.WORLD.getRenderHeight() + 64 + 1))) + 1) / scale;
 
-			byte[] shades = new byte[(z0 + size) * (x0 + size)];
+			boolean[] shades = new boolean[(z0 + size) * (x0 + size)];
 
 			long startTime = System.currentTimeMillis();
 			for (int cz = 0; cz < Tile.SIZE_IN_CHUNKS; cz++) {
@@ -132,7 +132,7 @@ public final class TileImage {
 				}
 			}
 			long estimatedTime = System.currentTimeMillis() - startTime;
-			System.out.println(estimatedTime);
+			//System.out.println(estimatedTime);
 
 			if (ConfigProvider.WORLD.getRenderCaves()) {
 				flatShade(pixelBuffer, terrainHeights, scale);
@@ -153,7 +153,7 @@ public final class TileImage {
 		STANDARD, LAYER, BIOMES, SHADE,
 		REGEX_1, REGEX_2, REGEX_3, REGEX_4,
 	}
-	private static void drawChunkImage(Chunk chunkData, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, byte[] shades, int x0, int z0) {
+	private static void drawChunkImage(Chunk chunkData, int x, int z, int scale, int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, boolean[] shades, int x0, int z0) {
 
 		if (chunkData.getData() == null) {
 			return;
@@ -171,6 +171,7 @@ public final class TileImage {
 						terrainHeights,
 						waterHeights,
 						ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater(),
+						ConfigProvider.WORLD.getTintBiomes(),
 						ConfigProvider.WORLD.getRenderHeight()
 				);
 				case LAYER -> VersionController.getChunkRenderer(dataVersion).drawLayer(
@@ -191,6 +192,7 @@ public final class TileImage {
 						shades,
 						x0, z0,
 						ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater(),
+						ConfigProvider.WORLD.getTintBiomes(),
 						ConfigProvider.WORLD.getRenderHeight()
 				);
 				case BIOMES -> VersionController.getChunkRenderer(dataVersion).drawBiomes(

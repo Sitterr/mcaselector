@@ -5,6 +5,8 @@ import net.querz.mcaselector.io.registry.BiomeRegistry;
 public interface ColorMapping {
 
 	// default tints from plains biome
+	int DEFAULT_BIOME = 1;
+	String DEFAULT_BIOME_STRING = "minecraft:plains";
 	int DEFAULT_GRASS_TINT = 0x91bd59;
 	int DEFAULT_FOLIAGE_TINT = 0x77ab2f;
 	int DEFAULT_WATER_TINT = 0x3f76e4;
