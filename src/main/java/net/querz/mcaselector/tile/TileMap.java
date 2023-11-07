@@ -21,6 +21,8 @@ import net.querz.mcaselector.io.*;
 import net.querz.mcaselector.io.job.ParseDataJob;
 import net.querz.mcaselector.io.job.RegionImageGenerator;
 import net.querz.mcaselector.property.DataProperty;
+import net.querz.mcaselector.realshading.Shade;
+import net.querz.mcaselector.realshading.ShadeConstants;
 import net.querz.mcaselector.selection.ChunkSet;
 import net.querz.mcaselector.selection.Selection;
 import net.querz.mcaselector.selection.SelectionData;
@@ -36,12 +38,7 @@ import org.apache.logging.log4j.Logger;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.ClipboardOwner;
 import java.awt.datatransfer.Transferable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -211,13 +208,13 @@ public class TileMap extends Canvas implements ClipboardOwner {
 						Point2i o = offset.toPoint2i();
 						Point2i min = o.sub(TILE_VISIBILITY_THRESHOLD * Tile.SIZE).blockToRegion().regionToBlock();
 						Point2i max = new Point2i(
-							(int) (o.getX() + getWidth() * scale),
-							(int) (o.getZ() + getHeight() * scale)).add(TILE_VISIBILITY_THRESHOLD * Tile.SIZE).blockToRegion().regionToBlock();
+								(int) (o.getX() + getWidth() * scale),
+								(int) (o.getZ() + getHeight() * scale)).add(TILE_VISIBILITY_THRESHOLD * Tile.SIZE).blockToRegion().regionToBlock();
 
 						Point2i location = img.regionToBlock().add(pastedChunksOffset.chunkToBlock());
 
 						return location.getX() < min.getX() || location.getZ() < min.getZ()
-							|| location.getX() > max.getX() || location.getZ() > max.getZ();
+								|| location.getX() > max.getX() || location.getZ() > max.getZ();
 					});
 				}
 
@@ -228,43 +225,54 @@ public class TileMap extends Canvas implements ClipboardOwner {
 
 				DataProperty<Integer> priority = new DataProperty<>(1);
 
-				runOnVisibleRegions(region -> {
-					Tile tile = tiles.get(region.asLong());
-					if (tile == null) {
-						tile = new Tile(region);
-						tiles.put(region.asLong(), tile);
-					}
+				if(ConfigProvider.WORLD.getRenderingMode() == TileImage.RenderingMode.SHADE) {
+					runOnVisibleRegionsSHADE(region -> {
+						Tile tile = tiles.get(region.asLong());
+						if (tile == null) {
+							tile = new Tile(region);
+							tiles.put(region.asLong(), tile);
+						}
+						imgPool.requestImage(tile, zoomLevel);
+					}, new Point2f(), () -> scale);
+				} else {
+					runOnVisibleRegions(region -> {
+						Tile tile = tiles.get(region.asLong());
+						if (tile == null) {
+							tile = new Tile(region);
+							tiles.put(region.asLong(), tile);
+						}
 
-					newTilePriorities.put(region.asLong(), (int) priority.get());
-					priority.set(priority.get() + 1);
+						newTilePriorities.put(region.asLong(), (int) priority.get());
+						priority.set(priority.get() + 1);
 
-					// load image
-					if (tile.image != null) {
-						if (tile.loaded) {
-							// scale is right
-							if (tile.getImageZoomLevel() != zoomLevel) {
-								// image is larger than needed
-								if (tile.getImageZoomLevel() < zoomLevel) {
-									// scale down immediately
-									tile.setImage(ImageHelper.scaleDownFXImage(tile.image, Tile.SIZE / zoomLevel));
-									// DONE
-								} else {
-									imgPool.requestImage(tile, zoomLevel);
+						// load image
+						if (tile.image != null) {
+							if (tile.loaded) {
+								// scale is right
+								if (tile.getImageZoomLevel() != zoomLevel) {
+									// image is larger than needed
+									if (tile.getImageZoomLevel() < zoomLevel) {
+										// scale down immediately
+										tile.setImage(ImageHelper.scaleDownFXImage(tile.image, Tile.SIZE / zoomLevel));
+										// DONE
+									} else {
+										imgPool.requestImage(tile, zoomLevel);
+									}
 								}
+							} else {
+								// if tile is not marked as loaded, but it has an image, we need to request a new image
+								imgPool.requestImage(tile, zoomLevel);
 							}
 						} else {
-							// if tile is not marked as loaded, but it has an image, we need to request a new image
 							imgPool.requestImage(tile, zoomLevel);
 						}
-					} else {
-						imgPool.requestImage(tile, zoomLevel);
-					}
 
-					// load overlay
-					if (overlayParser.get() != null && !tile.isOverlayLoaded()) {
-						overlayPool.requestImage(tile, overlayParser.get());
-					}
-				}, new Point2f(), () -> scale, Integer.MAX_VALUE);
+						// load overlay
+						if (overlayParser.get() != null && !tile.isOverlayLoaded()) {
+							overlayPool.requestImage(tile, overlayParser.get());
+						}
+					}, new Point2f(), () -> scale, Integer.MAX_VALUE);
+				}
 
 				tilePriorities = newTilePriorities;
 
@@ -275,6 +283,33 @@ public class TileMap extends Canvas implements ClipboardOwner {
 			}
 		}, 500, 500, TimeUnit.MILLISECONDS);
 	}
+
+
+
+
+
+	public void requestImage(Point2i region, int zoomLevel){
+		Tile tile = tiles.get(region.asLong());
+		if (tile == null) {
+			tile = new Tile(region);
+			tiles.put(region.asLong(), tile);
+		}
+		imgPool.requestImage(tile, zoomLevel);
+	}
+	public Tile getTile(Point2i region){
+		Tile tile = tiles.get(region.asLong());
+		if (tile == null) {
+			tile = new Tile(region);
+			tiles.put(region.asLong(), tile);
+		}
+		return tile;
+	}
+	public boolean isFirstVisibleRow(Point2i region){
+		Point2i min = offset.sub(new Point2f()).toPoint2i().blockToRegion();
+		return region.getZ() == min.getZ();
+	}
+
+
 
 	private void initDrawService() {
 		drawService = Executors.newSingleThreadScheduledExecutor();
@@ -301,9 +336,11 @@ public class TileMap extends Canvas implements ClipboardOwner {
 			if (tile != null) {
 				tile.loaded = false;
 			}
+			Shade.deleteAll();
 		}, new Point2f(), () -> scale, Integer.MAX_VALUE);
 	}
 
+	static Random rnd = new Random();
 	public int getTilePriority(Point2i region) {
 		return tilePriorities.getOrDefault(region.asLong(), 9_999_999);
 	}
@@ -345,7 +382,7 @@ public class TileMap extends Canvas implements ClipboardOwner {
 				index = 0;
 			}
 
-		// repeat if the current parser is null, it is invalid or inactive or if the types are not the same
+			// repeat if the current parser is null, it is invalid or inactive or if the types are not the same
 		} while ((parser = overlays.get(index)) == null || !parser.isActive() || !parser.isValid() || parser.getType() != overlayParser.get().getType());
 
 		setOverlay(parser);
@@ -1156,6 +1193,57 @@ public class TileMap extends Canvas implements ClipboardOwner {
 				}
 			}
 			steps++;
+		}
+	}
+
+	public void runOnVisibleRegionsSHADE(Consumer<Point2i> consumer, Point2f additionalOffset, Supplier<Float> scaleSupplier) {
+		float scale = scaleSupplier.get();
+		Point2i min = offset.sub(additionalOffset).toPoint2i().blockToRegion();
+		Point2i max = offset.sub(additionalOffset).add((float) getWidth() * scale, (float) getHeight() * scale).toPoint2i().blockToRegion();
+
+		int width = Math.abs(max.getX() - min.getX()) + 1, height = Math.abs(max.getZ() - min.getZ()) + 1;
+
+		boolean[] temp = new boolean[height * width];
+
+		for(int zz = 0; zz < height; zz++) {
+			for (int xx = 0; xx < width; xx++) {
+				int i = zz * width + xx;
+				var region = new Point2i(min.getX() + xx, min.getZ() + zz);
+				var tile = this.getTile(region);
+
+
+				synchronized (Shade.b) {
+
+					if (!Shade.isEmpty(region.asLong())) {
+						if (!temp[i]) {
+							if (!RegionImageGenerator.isLoading(tile)) {
+								Shade.saveToLoading(region.asLong());
+								consumer.accept(region);
+								//System.out.println(region);
+							}
+						}
+
+						var pairs = Shade.getPairs(region.asLong(), true);
+
+						for (int gz = 0; gz < ShadeConstants.GLOBAL.rZ; gz++) {
+							for (int gx = 0; gx < ShadeConstants.GLOBAL.rX; gx++) {
+								if (pairs.isFull(gz * ShadeConstants.GLOBAL.rX + gx)) {
+									for (int rz = 0; rz <= gz; rz++) {
+										for (int rx = 0; rx <= gx; rx++) {
+											if ((zz + rz) < height && (xx + rx) < width)
+												temp[(zz + rz) * width + (xx + rx)] = true;
+										}
+									}
+								}
+							}
+						}
+
+					} else {
+						consumer.accept(region);
+					}
+
+				}
+			}
 		}
 	}
 

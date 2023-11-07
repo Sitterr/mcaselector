@@ -13,6 +13,8 @@ import net.querz.mcaselector.io.FileHelper;
 import net.querz.mcaselector.io.JobHandler;
 import net.querz.mcaselector.point.Point2i;
 import net.querz.mcaselector.property.DataProperty;
+import net.querz.mcaselector.realshading.Shade;
+import net.querz.mcaselector.realshading.ShadeConstants;
 import net.querz.mcaselector.text.Translation;
 import net.querz.mcaselector.tile.TileMap;
 import net.querz.mcaselector.overlay.Overlay;
@@ -99,7 +101,8 @@ public class StatusBar extends StackPane {
 	private void update(TileMap tileMap) {
 		selectedChunks.setText(Translation.STATUS_SELECTED + ": " + (tileMap.getSelection().isInverted() ? "\u221e" : tileMap.getSelectedChunks()));
 		queuedJobs.setText(Translation.STATUS_QUEUE + ": " + JobHandler.getActiveJobs());
-		totalRegions.setText(Translation.STATUS_TOTAL + ": " + tileMap.getLoadedTiles());
+		//totalRegions.setText(Translation.STATUS_TOTAL + ": " + tileMap.getLoadedTiles());
+		totalRegions.setText(Translation.STATUS_TOTAL + ": " + Math.round(Shade.getMBSize() * 10) / 10);
 		Point2i b = tileMap.getHoveredBlock();
 		if (b != null) {
 			hoveredBlock.setText(Translation.STATUS_BLOCK + ": " + b.getX() + ", " + b.getZ());

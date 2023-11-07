@@ -1,9 +1,7 @@
 package net.querz.mcaselector.version.anvil117;
 
-import net.querz.mcaselector.Main;
-import net.querz.mcaselector.io.registry.BiomeRegistry;
 import net.querz.mcaselector.math.MathUtil;
-import net.querz.mcaselector.text.TextHelper;
+import net.querz.mcaselector.realshading.ShadeConstants;
 import net.querz.mcaselector.tile.Tile;
 import net.querz.mcaselector.ui.Color;
 import net.querz.mcaselector.version.ChunkRenderer;
@@ -13,7 +11,6 @@ import net.querz.mcaselector.regex.RegexMapping;
 import net.querz.nbt.CompoundTag;
 import net.querz.nbt.ListTag;
 
-import java.util.concurrent.CountDownLatch;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -294,8 +291,8 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 
 		int[] biomes = Helper.intArrayFromCompound(level, "Biomes");
 
-		for (int cx = 0; cx < Tile.CHUNK_SIZE; cx += scale) {
-			for (int cz = 0; cz < Tile.CHUNK_SIZE; cz += scale) {
+		for (int cz = 0; cz < Tile.CHUNK_SIZE; cz += scale) {
+			for (int cx = 0; cx < Tile.CHUNK_SIZE; cx += scale) {
 
 				int regionIndex = ((z + cz / scale) * (Tile.SIZE / scale) + (x + cx / scale));
 				// loop over sections
@@ -333,12 +330,12 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 
 						int h = absHeight - (i * 16 + cy);
 
-						int x1 = (int)Math.floor((x0 + x + cx / scale) + Main.cosA * (Main.cotgB * h) / scale), z1 = (int)Math.floor((z0 + z + cz / scale) + -Main.sinA * (Main.cotgB * h) / scale);
-						int x2 = (int)Math.floor(x1 + Main.cosA * Main.cotgB / scale), z2 = (int)Math.floor(z1 + -Main.sinA * Main.cotgB / scale);
+						int x1 = (int)Math.floor((x0 + x + cx / scale) + ShadeConstants.GLOBAL.cosAcotgB * h / scale), z1 = (int)Math.floor((z0 + z + cz / scale) + -ShadeConstants.GLOBAL.sinAcotgB * h / scale);
+						int x2 = (int)Math.floor(x1 + ShadeConstants.GLOBAL.cosAcotgB / scale), z2 = (int)Math.floor(z1 + -ShadeConstants.GLOBAL.sinAcotgB / scale);
 
 
 
-						boolean alreadyshade = chechline(shades, SHADEX, x2, z2, x1, z1);
+						boolean alreadyshade = checkline(shades, SHADEX, x2, z2, x1, z1);
 
 						if(!isEmpty && !done) {
 							int biome = getBiomeAtBlock(biomes, cx, sectionHeight + cy, cz);
@@ -348,9 +345,9 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 							int blockDataColor = colorMapping.getRGB(blockData, biome);
 							int intensity = 0;
 							if(alreadyshade && !waterDepth){
-								intensity = (int)(Main.SHADEMOODYNESS * 1);
+								intensity = (int)(ShadeConstants.SHADEMOODYNESS * 1);
 								if(isWater) {
-									waterShade = (int)(0.99 * intensity);
+									waterShade = (int)(0.5 * intensity);
 								}
 							}
 							blockDataColor = Color.shade(blockDataColor, intensity);
@@ -366,7 +363,7 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 								} else{
 									if(waterDepth){
 										final double waterAbsorbtion = 0.1;
-										waterShade = MathUtil.clamp((int)(Main.SHADEMOODYNESS * waterAbsorbtion * hw) + waterShade, Main.SHADEMOODYNESS, 0);
+										waterShade = MathUtil.clamp((int)(ShadeConstants.SHADEMOODYNESS * waterAbsorbtion * hw) + waterShade, ShadeConstants.SHADEMOODYNESS, 0);
 										pixelBuffer[regionIndex] = Color.shade(colorMapping.getRGB(waterDummy, biome), waterShade); // water color
 									}
 
@@ -406,11 +403,8 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 						}
 
 						if(!alreadyshade && solidness) {
-							int xp = (int)Math.ceil(Main.cosA), zp = -(int)Math.ceil(Main.sinA);
 							//int xp = -1, zp = -1;
 							setline(shades, solidness, SHADEX, x2, z2, x1, z1);
-							setline(shades, solidness, SHADEX, x2 - xp, z2, x1, z1 + zp);
-							setline(shades, solidness, SHADEX, x2, z2 - zp, x1 + xp, z1);
 						}
 
 					}
@@ -620,8 +614,7 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 	}
 
 
-
-	private void setline(boolean[] shades, boolean value, int SHADEX, int x1, int z1, int x2, int z2) {
+	private void setline_(boolean[] shades, boolean value, int SHADEX, int x1, int z1, int x2, int z2) {
 		int deltax = Math.abs(x2 - x1);
 		int deltaz = Math.abs(z2 - z1);
 		int error = 0;
@@ -640,8 +633,7 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 			}
 		}
 	}
-
-	boolean chechline(boolean[] shades, int SHADEX, int x1, int z1, int x2, int z2){
+	boolean checkline_(boolean[] shades, int SHADEX, int x1, int z1, int x2, int z2){
 		int deltax = Math.abs(x2 - x1);
 		int deltaz = Math.abs(z2 - z1);
 		int error = 0;
@@ -675,6 +667,71 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 
 		return min;
 	}
+
+
+
+	void setline(boolean[] shades, boolean value, int SHADEX, int x1, int z1, int x2, int z2) {
+		int dx = Math.abs(x2 - x1);
+		int dz = Math.abs(z2 - z1);
+		int sx = x1 < x2 ? 1 : -1;
+		int sz = z1 < z2 ? 1 : -1;
+		int err = dx - dz;
+
+		for(int n = 1 + dx + dz; n > 0; n--) {
+			int indx = z1 * SHADEX + x1;
+			if(indx >= 0 && indx < shades.length) {
+				shades[indx] = value;
+			}
+
+			if (err > 0)
+			{
+				x1 += sx;
+				err -= dz;
+			}
+			else
+			{
+				z1 += sz;
+				err += dx;
+			}
+		}
+
+		//points.add(new Point(x2, z2)); // Include the last point
+	}
+
+	boolean checkline(boolean[] shades, int SHADEX, int x1, int z1, int x2, int z2) {
+		int dx = Math.abs(x2 - x1);
+		int dz = Math.abs(z2 - z1);
+		int sx = x1 < x2 ? 1 : -1;
+		int sz = z1 < z2 ? 1 : -1;
+		int err = dx - dz;
+
+		boolean min = true;
+
+		for(int n = 1 + dx + dz; n > 0; n--) {
+			int indx = (int)z1 * SHADEX + (int)x1;
+			if(indx >= 0 && indx < shades.length) {
+				if (Boolean.compare(min, shades[indx]) > 0) {
+					min = shades[indx];
+					break;
+				}
+			}
+
+			if (err > 0)
+			{
+				x1 += sx;
+				err -= dz;
+			}
+			else
+			{
+				z1 += sz;
+				err += dx;
+			}
+		}
+
+		return min;
+		//points.add(new Point(x2, z2)); // Include the last point
+	}
+
 
 	@Override
 	public CompoundTag minimizeChunk(CompoundTag root) {

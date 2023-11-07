@@ -6,7 +6,6 @@ import javafx.scene.image.PixelFormat;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
-import net.querz.mcaselector.Main;
 import net.querz.mcaselector.config.ConfigProvider;
 import net.querz.mcaselector.io.FileHelper;
 import net.querz.mcaselector.io.mca.Chunk;
@@ -14,18 +13,16 @@ import net.querz.mcaselector.io.mca.RegionMCAFile;
 import net.querz.mcaselector.math.MathUtil;
 import net.querz.mcaselector.point.Point2f;
 import net.querz.mcaselector.point.Point2i;
-import net.querz.mcaselector.regex.RegexBuild;
+import net.querz.mcaselector.realshading.Shade;
+import net.querz.mcaselector.realshading.ShadeConstants;
 import net.querz.mcaselector.regex.RegexConfig;
 import net.querz.mcaselector.selection.ChunkSet;
 import net.querz.mcaselector.selection.Selection;
 import net.querz.mcaselector.ui.Color;
 import net.querz.mcaselector.io.ImageHelper;
-import net.querz.mcaselector.regex.RegexMapping;
 import net.querz.mcaselector.version.VersionController;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import java.util.regex.Pattern;
 
 public final class TileImage {
 
@@ -98,10 +95,12 @@ public final class TileImage {
 	}
 
 	public static Image generateImage(RegionMCAFile mcaFile, int scale) {
+		Point2i loc = mcaFile.getLocation();
 
 		int size = Tile.SIZE / scale;
 		int chunkSize = Tile.CHUNK_SIZE / scale;
 		int pixels = Tile.PIXELS / (scale * scale);
+
 
 		try {
 
@@ -112,10 +111,22 @@ public final class TileImage {
 			short[] terrainHeights = new short[pixels];
 			short[] waterHeights = ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater() && !ConfigProvider.WORLD.getRenderCaves() ? new short[pixels] : null;
 
-			int x0 = ((int)Math.ceil(Math.abs(Main.cosA * Main.cotgB * (ConfigProvider.WORLD.getRenderHeight() + 64 + 1))) + 1) / scale;
-			int z0 = ((int)Math.ceil(Math.abs(Main.sinA * Main.cotgB * (ConfigProvider.WORLD.getRenderHeight() + 64 + 1))) + 1) / scale;
 
-			boolean[] shades = new boolean[(z0 + size) * (x0 + size)];
+			int x0 = 0, z0 = 0;
+			boolean[] shades = null;
+
+			// get shading
+			if(ConfigProvider.WORLD.getRenderingMode() == RenderingMode.SHADE){
+				x0 = ((int)Math.ceil(Math.abs(ShadeConstants.GLOBAL.cosAcotgB * (ConfigProvider.WORLD.getRenderHeight() + 64)))) / scale;
+				z0 = ((int)Math.ceil(Math.abs(ShadeConstants.GLOBAL.sinAcotgB * (ConfigProvider.WORLD.getRenderHeight() + 64)))) / scale;
+				shades = new boolean[(z0 + size) * (x0 + size)];
+
+				for(short iz = 0; iz < ShadeConstants.GLOBAL.rZ; iz++) {
+					for (short ix = 0; ix < ShadeConstants.GLOBAL.rX; ix++) {
+						Shade.get(scale, new Point2i(loc.getX() + ix, loc.getZ() + iz).asLong(), (short)(ShadeConstants.GLOBAL.rX - ix - 1), (short)(ShadeConstants.GLOBAL.rZ - iz - 1), shades, ix * size, iz * size, x0 + size, z0 + size);
+					}
+				}
+			}
 
 			long startTime = System.currentTimeMillis();
 			for (int cz = 0; cz < Tile.SIZE_IN_CHUNKS; cz++) {
@@ -134,10 +145,20 @@ public final class TileImage {
 			long estimatedTime = System.currentTimeMillis() - startTime;
 			//System.out.println(estimatedTime);
 
+			// save shading
+			if(ConfigProvider.WORLD.getRenderingMode() == RenderingMode.SHADE){
+				for(short iz = 0; iz < ShadeConstants.GLOBAL.rZ; iz++) {
+					for (short ix = 0; ix < ShadeConstants.GLOBAL.rX; ix++) {
+						Shade.add(scale, new Point2i(loc.getX() + ix, loc.getZ() + iz).asLong(), (short)(ShadeConstants.GLOBAL.rX - ix - 1), (short)(ShadeConstants.GLOBAL.rZ - iz - 1), shades, ix * size, iz * size, x0 + size, z0 + size);
+					}
+				}
+				Shade.delete(loc.asLong());
+			}
+
 			if (ConfigProvider.WORLD.getRenderCaves()) {
 				flatShade(pixelBuffer, terrainHeights, scale);
 			} else if (ConfigProvider.WORLD.getShade() && !ConfigProvider.WORLD.getRenderLayerOnly()) {
-				shade(pixelBuffer, waterPixels, terrainHeights, waterHeights, scale, Main.ANGLE);
+				shade(pixelBuffer, waterPixels, terrainHeights, waterHeights, scale);
 			}
 
 			writer.setPixels(0, 0, size, size, PixelFormat.getIntArgbPreInstance(), pixelBuffer, 0, size);
@@ -246,7 +267,7 @@ public final class TileImage {
 		}
 	}
 
-	private static void shade(int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, int scale, double radAngle) {
+	private static void shade(int[] pixelBuffer, int[] waterPixels, short[] terrainHeights, short[] waterHeights, int scale) {
 		if (!ConfigProvider.WORLD.getShadeWater() || !ConfigProvider.WORLD.getShade()) {
 			waterHeights = terrainHeights;
 		}
@@ -282,7 +303,7 @@ public final class TileImage {
 						xShade = ((waterHeights[index + 1]) - (waterHeights[index - 1])) * 2;
 					}
 
-					double shade = Math.sin(radAngle) * zShade + -Math.cos(radAngle) * xShade;
+					double shade = -(ShadeConstants.GLOBAL.cosA * xShade + -ShadeConstants.GLOBAL.sinA * zShade);
 					if (shade < -8) {
 						shade = -8;
 					}

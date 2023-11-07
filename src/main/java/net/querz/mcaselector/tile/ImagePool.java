@@ -13,11 +13,14 @@ import net.querz.mcaselector.io.db.CacheDBController;
 import net.querz.mcaselector.io.job.CachedImageLoadJob;
 import net.querz.mcaselector.io.job.RegionImageGenerator;
 import net.querz.mcaselector.point.Point2i;
+import net.querz.mcaselector.realshading.Shade;
+import net.querz.mcaselector.realshading.ShadeConstants;
 import net.querz.mcaselector.text.Translation;
 import net.querz.mcaselector.ui.ProgressTask;
 import net.querz.mcaselector.ui.dialog.ErrorDialog;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -72,7 +75,13 @@ public final class ImagePool {
 		if ((image = pool.get(zoomLevel).get(tile.location.asLong())) != null) {
 			tile.setImage(image);
 			tile.setLoaded(true);
-			return;
+			if(Shade.shouldRedraw(tile.location.asLong())) {
+				//requestNeighbours(tile, zoomLevel);
+				//if(Shade.isPairEmpty(tile.location.asLong())) return;
+			} else{
+				return;
+			}
+
 		}
 
 		// try to get a higher res image for this tile from memory cache
@@ -90,7 +99,12 @@ public final class ImagePool {
 					tile.setImage(ImageHelper.scaleDownFXImage(image, Tile.SIZE / zl));
 					tile.setLoaded(true);
 					push(zoomLevel, tile.location, tile.image);
-					return;
+					if(Shade.shouldRedraw(tile.location.asLong())) {
+						//requestNeighbours(tile, zoomLevel);
+						//if(Shade.isPairEmpty(tile.location.asLong())) return;
+					} else {
+						return;
+					}
 				} else {
 					// image is lower res, but we set it anyway, so we can at least display something
 					tile.setImage(image);
@@ -114,7 +128,12 @@ public final class ImagePool {
 					tile.setLoaded(false);
 				}
 			});
-			return;
+			if(Shade.shouldRedraw(tile.location.asLong())) {
+				//requestNeighbours(tile, zoomLevel);
+				//if(Shade.isPairEmpty(tile.location.asLong())) return;
+			} else {
+				return;
+			}
 		}
 
 		for (int zl = 1; zl <= Config.MAX_ZOOM_LEVEL; zl *= 2) {
@@ -137,7 +156,12 @@ public final class ImagePool {
 							tile.setLoaded(false);
 						}
 					});
-					return;
+					if(Shade.shouldRedraw(tile.location.asLong())) {
+						//requestNeighbours(tile, zoomLevel);
+						//if(Shade.isPairEmpty(tile.location.asLong())) return;
+					} else {
+						return;
+					}
 				} else {
 					// image is lower res, but we load and set it anyway, so we can at least display something
 					// load and set
@@ -155,19 +179,59 @@ public final class ImagePool {
 			}
 		}
 
-		RegionImageGenerator.setLoading(tile, true);
-		RegionImageGenerator.generate(tile, (img, uuid) -> {
-			tile.setImage(img);
-			tile.loaded = true;
-			RegionImageGenerator.setLoading(tile, false);
-			push(zoomLevel, tile.location, img);
-			tileMap.draw();
-			try {
-				cache.setFileTime(tile.location, readLastModifiedDate(tile.location));
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}, zoomLevel, null, true, () -> tileMap.getTilePriority(tile.getLocation()));
+		if(Shade.shouldRedraw(tile.location.asLong()) || ConfigProvider.WORLD.getRenderingMode() != TileImage.RenderingMode.SHADE) {
+			RegionImageGenerator.setLoading(tile, true);
+			RegionImageGenerator.generate(tile, (img, uuid) -> {
+				tile.setImage(img);
+
+				if (Shade.shouldRedraw(tile.location.asLong())) {
+					synchronized (Shade.b) {
+						var oldpairs = Shade.getFromLoadingAndDelete(tile.location.asLong());
+
+						//Point2i goredqsno = new Point2i(tile.location.getX() + 1, tile.location.getZ() - 1);
+						//Point2i dolulqvo = new Point2i(tile.location.getX() - 1, tile.location.getZ() + 1);
+
+						Point2i dqsno = new Point2i(tile.location.getX() + 1, tile.location.getZ());
+						Point2i dolu = new Point2i(tile.location.getX(), tile.location.getZ() + 1);
+
+						var pp = Shade.getPairs(tile.location.asLong(), false);
+						for (int z = 0; z < ShadeConstants.GLOBAL.rZ; z++) {
+							for (int x = 0; x < ShadeConstants.GLOBAL.rX; x++) {
+								int i = z * ShadeConstants.GLOBAL.rX + x;
+								if (oldpairs[i]) {
+									if (x > 0) {
+										Shade.addPair(dqsno.asLong(), x - 1, z);
+										if (z == ShadeConstants.GLOBAL.rZ - 1) Shade.addPair(dqsno.asLong(), x - 1, z);
+									}
+
+									if (z > 0) {
+										Shade.addPair(dolu.asLong(), x, z - 1);
+										if (x == ShadeConstants.GLOBAL.rX - 1) Shade.addPair(dolu.asLong(), x, z - 1);
+									}
+
+									pp.setFull(i, false);
+								}
+							}
+						}
+
+						//System.out.println(tile.location);
+					}
+				}
+
+				tile.loaded = true;
+				RegionImageGenerator.setLoading(tile, false);
+				push(zoomLevel, tile.location, img);
+				tileMap.draw();
+				try {
+					cache.setFileTime(tile.location, readLastModifiedDate(tile.location));
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+
+
+			}, zoomLevel, null, true, () -> tileMap.getTilePriority(tile.getLocation()));
+		}
+
 	}
 
 	public boolean isImageOutdated(Point2i region) {

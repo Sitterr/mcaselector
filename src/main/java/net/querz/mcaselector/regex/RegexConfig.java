@@ -21,7 +21,7 @@ public class RegexConfig {
     }
 
     private static RegexMapping mapping;
-    private static String oldMapping = "";
+    private static String oldMapping = null;
     public static RegexMapping getMapping(){
         String currentMapping = ConfigProvider.WORLD.getRegexMapping();
         if(!currentMapping.equals(oldMapping)){
