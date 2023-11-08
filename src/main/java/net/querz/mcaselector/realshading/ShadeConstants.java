@@ -9,7 +9,7 @@ import java.util.Queue;
 
 public class ShadeConstants {
     public static int SHADEMOODYNESS = (int)(0.7 * -100);
-    public static double ADEG = 124, BDEG = 20;
+    public static double ADEG = 240, BDEG = 20;
 
     public static ShadeConstants GLOBAL = recalcGLOBAL();
     public static final int MAXrXrZ = calcMAXrXrZ(5);
@@ -25,6 +25,7 @@ public class ShadeConstants {
     public int xp, zp;
     public int rX, rZ;
     public HashMap<Pair<Byte, Byte>, Byte> path;
+    public byte maxdist;
     public HashMap<Byte, Boolean> single;
 
 
@@ -46,19 +47,39 @@ public class ShadeConstants {
         rX = (byte)Math.ceil(Math.abs(cosAcotgB * (ConfigProvider.WORLD.DEFAULT_RENDER_HEIGHT + 64)) / 512 + 1);
         rZ = (byte)Math.ceil(Math.abs(sinAcotgB * (ConfigProvider.WORLD.DEFAULT_RENDER_HEIGHT + 64)) / 512 + 1);
 
-
-        if(sinA >= 0){
+        if(sinA >= 0) {
             if(cosA <= 0) dir = ShadeDir.upleft;
-            else { dir = ShadeDir.upright; throw new RuntimeException("not implemented degree range"); }
+            else dir = ShadeDir.upright;
         } else {
-            throw new RuntimeException("not supported degree range");
+            if(cosA <= 0) dir = ShadeDir.downleft;
+            else dir = ShadeDir.downright;
         }
 
         calcPath();
     }
 
+    private static int fl(int val, int min, int max, int p){
+        if(p <= 0) return val;
+        else return max - (val - min) - 1;
+    }
+    public int flowX(int val, int min, int max){
+        return fl(val, min, max, xp);
+    }
+    public int nflowX(int val, int min, int max){
+        return fl(val, min, max, -xp);
+    }
+    public int flowZ(int val, int min, int max){
+        return fl(val, min, max, zp);
+    }
+    public int nflowZ(int val, int min, int max){
+        return fl(val, min, max, -zp);
+    }
 
-    private void calcPath(){
+    public byte getPath(Pair<Byte, Byte> pair){
+        return path.getOrDefault(pair, (byte)-1);
+    }
+
+    private void calcPath() {
         path = new HashMap<>();
         single = new HashMap<>();
         boolean[] bremArr = new boolean[rX * rZ];
@@ -103,8 +124,10 @@ public class ShadeConstants {
                 }
             }
 
-            if(br == 0) break;
-            else {
+            if(br == 0){
+                maxdist = (byte)curr;
+                break;
+            } else {
                 single.put((byte)(curr + 1), br == 1);
             }
 
@@ -204,5 +227,6 @@ public class ShadeConstants {
     }
 }
 enum ShadeDir{
-    upleft, upright
+    upleft, upright,
+    downleft, downright
 }

@@ -7,7 +7,7 @@ import java.util.HashMap;
 
 public class Shade {
     private static int SIZE = Tile.SIZE * Tile.SIZE;
-    private static final HashMap<Long, Pair<Pair<Short, Short>, Boolean[]>> pool = new HashMap<>();
+    private static final HashMap<Long, Pair<Byte, Boolean[]>> pool = new HashMap<>();
 
     private static final HashMap<Long, PairArr> pairpool = new HashMap<>(), pairpoolLoading = new HashMap<>();
     private static final HashMap<Long, Boolean> paircompletepool = new HashMap<>();
@@ -17,34 +17,19 @@ public class Shade {
     }
 
 
-    public static Pair<Pair<Short, Short>, Boolean[]> _get(int scale, long region, short distanceX, short distanceZ){
+    public static Pair<Byte, Boolean[]> _get(int scale, long region, short distance){
         var a = pool.get(region);
         if(a == null){
             SIZE = SIZE / (scale * scale);
-            a = new Pair<>(new Pair<>((short)-1, (short)-1), new Boolean[SIZE]);
+            a = new Pair<>((byte)-1, new Boolean[SIZE]);
             pool.put(region, a);
-        } else if(a.getKey().getKey() >= distanceX && a.getKey().getValue() >= distanceZ){
-            SIZE = SIZE / (scale * scale);
-            a = new Pair<>(new Pair<>((short)-1, (short)-1), new Boolean[SIZE]);
-            pool.put(region, a);
-        } else if(a.getValue().length != SIZE){
-
         }
 
         return a;
     }
 
-    public static Pair<Short, Short> getDist(int scale, long region){
-        var a = pool.get(region);
-        if(a == null){
-            return new Pair<>((short)-1, (short)-1);
-        } else {
-            return a.getKey();
-        }
-    }
-
-    public static void get(int scale, long region, short distanceX, short distanceZ, boolean[] shading, int offsetX, int offsetZ, int sizeX, int sizeZ){
-        var _a = _get(scale, region, distanceX, distanceZ);
+    public static void get(int scale, long region, byte distance, boolean[] shading, int offsetX, int offsetZ, int sizeX, int sizeZ){
+        var _a = _get(scale, region, distance);
         var a = _a.getValue();
 
         synchronized (a) {
@@ -60,28 +45,21 @@ public class Shade {
         }
     }
 
-    public static void add(int scale, long region, short distanceX, short distanceZ, boolean[] shading, int offsetX, int offsetZ, int sizeX, int sizeZ){
-        var _a = _get(scale, region, distanceX, distanceZ);
+    public static void add(int scale, long region, byte distance, boolean[] shading, int offsetX, int offsetZ, int sizeX, int sizeZ){
+        var _a = _get(scale, region, distance);
         var a = _a.getValue();
 
         synchronized (a) {
-            boolean changed = false;
             int sx = Math.min(Tile.SIZE, sizeX - offsetX), sz = Math.min(Tile.SIZE, sizeZ - offsetZ);
             for (int xx = offsetX; xx < offsetX + sx; xx++) {
                 for (int zz = offsetZ; zz < offsetZ + sz; zz++) {
                     int ai = (zz - offsetZ) * Tile.SIZE + (xx - offsetX), si = zz * sizeX + xx;
                     boolean aai = false;
                     if(a[ai] != null) aai = a[ai];
-
-                    if(aai || shading[si] != aai){
-                        changed = true;
-                        a[ai] = aai || shading[si];
-                    }
+                    a[ai] = aai || shading[si];
                 }
             }
-            if(changed){
-                pool.put(region, new Pair<>(new Pair<>(distanceX, distanceZ), a));
-            }
+            pool.put(region, new Pair<>(distance, a));
         }
     }
 

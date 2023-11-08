@@ -6,6 +6,7 @@ import javafx.scene.image.PixelFormat;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
+import javafx.util.Pair;
 import net.querz.mcaselector.config.ConfigProvider;
 import net.querz.mcaselector.io.FileHelper;
 import net.querz.mcaselector.io.mca.Chunk;
@@ -110,28 +111,32 @@ public final class TileImage {
 			int[] waterPixels = ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater() && !ConfigProvider.WORLD.getRenderCaves() ? new int[pixels] : null;
 			short[] terrainHeights = new short[pixels];
 			short[] waterHeights = ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater() && !ConfigProvider.WORLD.getRenderCaves() ? new short[pixels] : null;
-
-
-			int x0 = 0, z0 = 0;
 			boolean[] shades = null;
 
 			// get shading
 			if(ConfigProvider.WORLD.getRenderingMode() == RenderingMode.SHADE){
-				x0 = ((int)Math.ceil(Math.abs(ShadeConstants.GLOBAL.cosAcotgB * (ConfigProvider.WORLD.getRenderHeight() + 64)))) / scale;
-				z0 = ((int)Math.ceil(Math.abs(ShadeConstants.GLOBAL.sinAcotgB * (ConfigProvider.WORLD.getRenderHeight() + 64)))) / scale;
-				shades = new boolean[(z0 + size) * (x0 + size)];
+				//x0 = (ShadeConstants.GLOBAL.rX - 1) * 512;
+				//z0 = (ShadeConstants.GLOBAL.rZ - 1) * 512;
+				shades = new boolean[(ShadeConstants.GLOBAL.rX * 512) * (ShadeConstants.GLOBAL.rZ * 512)];
 
-				for(short iz = 0; iz < ShadeConstants.GLOBAL.rZ; iz++) {
-					for (short ix = 0; ix < ShadeConstants.GLOBAL.rX; ix++) {
-						Shade.get(scale, new Point2i(loc.getX() + ix, loc.getZ() + iz).asLong(), (short)(ShadeConstants.GLOBAL.rX - ix - 1), (short)(ShadeConstants.GLOBAL.rZ - iz - 1), shades, ix * size, iz * size, x0 + size, z0 + size);
+				for(byte _iz = 0; _iz < ShadeConstants.GLOBAL.rZ; _iz++) {
+					for (byte _ix = 0; _ix < ShadeConstants.GLOBAL.rX; _ix++) {
+						byte ix = (byte)(_ix * ShadeConstants.GLOBAL.xp), iz = (byte)(_iz * ShadeConstants.GLOBAL.zp);
+						byte dist = ShadeConstants.GLOBAL.getPath(new Pair<>(ix, iz));
+						var point = new Point2i(loc.getX() + ix, loc.getZ() + iz);
+						if(dist != -1){
+							Shade.get(scale, point.asLong(), dist, shades, (short)ShadeConstants.GLOBAL.nflowX(_ix, 0, ShadeConstants.GLOBAL.rX) * 512, (short)ShadeConstants.GLOBAL.nflowZ(_iz, 0, ShadeConstants.GLOBAL.rZ) * 512, ShadeConstants.GLOBAL.rX * 512, ShadeConstants.GLOBAL.rZ * 512);
+						}
 					}
 				}
 			}
 
-			long startTime = System.currentTimeMillis();
-			for (int cz = 0; cz < Tile.SIZE_IN_CHUNKS; cz++) {
-				for (int cx = 0; cx < Tile.SIZE_IN_CHUNKS; cx++) {
-					int index = cz  * Tile.SIZE_IN_CHUNKS + cx;
+			// draw
+			for (int _cz = 0; _cz < Tile.SIZE_IN_CHUNKS; _cz++) {
+				int cz = ShadeConstants.GLOBAL.flowZ(_cz, 0, Tile.SIZE_IN_CHUNKS);
+				for (int _cx = 0; _cx < Tile.SIZE_IN_CHUNKS; _cx++) {
+					int cx = ShadeConstants.GLOBAL.flowX(_cx, 0, Tile.SIZE_IN_CHUNKS);
+					int index = cz * Tile.SIZE_IN_CHUNKS + cx;
 
 					Chunk data = mcaFile.getChunk(index);
 
@@ -139,20 +144,26 @@ public final class TileImage {
 						continue;
 					}
 
-					drawChunkImage(data, cx * chunkSize, cz * chunkSize, scale, pixelBuffer, waterPixels, terrainHeights, waterHeights, shades, x0, z0);
+					drawChunkImage(data, cx * chunkSize, cz * chunkSize, scale, pixelBuffer, waterPixels, terrainHeights, waterHeights, shades, ShadeConstants.GLOBAL.nflowX(0, 0, ShadeConstants.GLOBAL.rX) * 512, ShadeConstants.GLOBAL.nflowZ(0, 0, ShadeConstants.GLOBAL.rZ) * 512);
 				}
 			}
-			long estimatedTime = System.currentTimeMillis() - startTime;
-			//System.out.println(estimatedTime);
 
 			// save shading
 			if(ConfigProvider.WORLD.getRenderingMode() == RenderingMode.SHADE){
-				for(short iz = 0; iz < ShadeConstants.GLOBAL.rZ; iz++) {
-					for (short ix = 0; ix < ShadeConstants.GLOBAL.rX; ix++) {
-						Shade.add(scale, new Point2i(loc.getX() + ix, loc.getZ() + iz).asLong(), (short)(ShadeConstants.GLOBAL.rX - ix - 1), (short)(ShadeConstants.GLOBAL.rZ - iz - 1), shades, ix * size, iz * size, x0 + size, z0 + size);
+
+				for(byte _iz = 0; _iz < ShadeConstants.GLOBAL.rZ; _iz++) {
+					for (byte _ix = 0; _ix < ShadeConstants.GLOBAL.rX; _ix++) {
+						byte ix = (byte)(_ix * ShadeConstants.GLOBAL.xp), iz = (byte)(_iz * ShadeConstants.GLOBAL.zp);
+						byte dist = ShadeConstants.GLOBAL.getPath(new Pair<>(ix, iz));
+						var point = new Point2i(loc.getX() + ix, loc.getZ() + iz);
+						if(dist != -1) {
+							Shade.add(scale, point.asLong(), dist, shades, (short)ShadeConstants.GLOBAL.nflowX(_ix, 0, ShadeConstants.GLOBAL.rX) * 512, (short)ShadeConstants.GLOBAL.nflowZ(_iz, 0, ShadeConstants.GLOBAL.rZ) * 512, ShadeConstants.GLOBAL.rX * 512, ShadeConstants.GLOBAL.rZ * 512);
+						}
+						if(dist == ShadeConstants.GLOBAL.maxdist) {
+							Shade.delete(point.asLong());
+						}
 					}
 				}
-				Shade.delete(loc.asLong());
 			}
 
 			if (ConfigProvider.WORLD.getRenderCaves()) {

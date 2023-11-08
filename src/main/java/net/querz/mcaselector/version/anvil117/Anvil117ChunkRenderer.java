@@ -273,7 +273,7 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 		}
 		CompoundTag level = Helper.tagFromCompound(root, "Level");
 
-		final int SHADEX = Tile.SIZE / scale + x0, SHADEZ = Tile.SIZE / scale + z0;
+		final int SHADEX = ShadeConstants.GLOBAL.rX	* 512, SHADEZ = ShadeConstants.GLOBAL.rZ * 512;
 
 		int absHeight = height + 64;
 
@@ -291,8 +291,10 @@ public class Anvil117ChunkRenderer implements ChunkRenderer {
 
 		int[] biomes = Helper.intArrayFromCompound(level, "Biomes");
 
-		for (int cz = 0; cz < Tile.CHUNK_SIZE; cz += scale) {
-			for (int cx = 0; cx < Tile.CHUNK_SIZE; cx += scale) {
+		for (int _cz = 0; _cz < Tile.CHUNK_SIZE; _cz += scale) {
+			int cz = ShadeConstants.GLOBAL.flowZ(_cz, 0, Tile.CHUNK_SIZE);
+			for (int _cx = 0; _cx < Tile.CHUNK_SIZE; _cx += scale) {
+				int cx = ShadeConstants.GLOBAL.flowX(_cx, 0, Tile.CHUNK_SIZE);
 
 				int regionIndex = ((z + cz / scale) * (Tile.SIZE / scale) + (x + cx / scale));
 				// loop over sections
