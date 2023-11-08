@@ -1,13 +1,15 @@
 package net.querz.mcaselector.realshading;
 
 import javafx.util.Pair;
+import net.querz.mcaselector.config.Config;
 import net.querz.mcaselector.config.ConfigProvider;
 
 import java.util.HashMap;
+import java.util.Queue;
 
 public class ShadeConstants {
     public static int SHADEMOODYNESS = (int)(0.7 * -100);
-    public static double ADEG = 90, BDEG = 20;
+    public static double ADEG = 124, BDEG = 20;
 
     public static ShadeConstants GLOBAL = recalcGLOBAL();
     public static final int MAXrXrZ = calcMAXrXrZ(5);
@@ -23,6 +25,7 @@ public class ShadeConstants {
     public int xp, zp;
     public int rX, rZ;
     public HashMap<Pair<Byte, Byte>, Byte> path;
+    public HashMap<Byte, Boolean> single;
 
 
 
@@ -46,59 +49,138 @@ public class ShadeConstants {
 
         if(sinA >= 0){
             if(cosA <= 0) dir = ShadeDir.upleft;
-            else throw new RuntimeException("not supported degree range");
+            else { dir = ShadeDir.upright; throw new RuntimeException("not implemented degree range"); }
         } else {
-            if(cosA > 0) throw new RuntimeException("not supported degree range");
-            else throw new RuntimeException("not supported degree range");
+            throw new RuntimeException("not supported degree range");
         }
 
-        path = calcPath();
+        calcPath();
     }
 
 
-    private HashMap<Pair<Byte, Byte>, Byte> calcPath(){
-        HashMap<Pair<Byte, Byte>, Byte> map = new HashMap<>();
-        boolean[] edge = new boolean[rX * rZ];
+    private void calcPath(){
+        path = new HashMap<>();
+        single = new HashMap<>();
+        boolean[] bremArr = new boolean[rX * rZ];
+
+        float a = 0.8f;
+        brem(bremArr, 0.5, 0.5, 0.5 + rX - 1, 0.5 + rZ - 1);
+        brem(bremArr, a, 0, a + rX - 1, rZ - 1);
+        brem(bremArr, 0, a, rX - 1, a + rZ - 1);
+
+
+        int[] arr = new int[rX * rZ];
+        for(int i=0;i<arr.length;i++) arr[i] = -1;
+        arr[0] = 0;
+        path.put(new Pair<>((byte)0, (byte)0), (byte)(0));
+        single.put((byte)0, true);
         int curr = 0;
+        while(true){
+            int br = 0;
 
+            for(int i=0;i<rX*rZ;i++){
+                if(arr[i] == curr){
+                    if((i + 1) % rX != 0) {
+                        int xx = (i + 1) % rX, zz = (i + 1) / rX;
+                        xx = xx * xp;
+                        zz = zz * zp;
+                        if (arr[i + 1] == -1 && bremArr[i + 1]) {
+                            arr[i + 1] = curr + 1;
+                            path.put(new Pair<>((byte)xx, (byte)zz), (byte)(curr + 1));
+                            br++;
+                        }
+                    }
+                    if((i + rX) / rX < rZ) {
+                        int xx = (i + rX) % rX, zz = (i + rX) / rX;
+                        xx = xx * xp;
+                        zz = zz * zp;
+                        if (arr[i + rX] == -1 && bremArr[i + rX]) {
+                            arr[i + rX] = curr + 1;
+                            path.put(new Pair<>((byte)xx, (byte)zz), (byte)(curr + 1));
+                            br++;
+                        }
+                    }
+                }
+            }
 
+            if(br == 0) break;
+            else {
+                single.put((byte)(curr + 1), br == 1);
+            }
 
-
-
-        return map;
+            curr++;
+        }
     }
 
-    private boolean bren(boolean[] shades, int SHADEX, int x1, int z1, int x2, int z2){
-        int deltax = Math.abs(x2 - x1);
-        int deltaz = Math.abs(z2 - z1);
-        int error = 0;
-        int br = 0;
-        int zz = z1;
+    void brem(boolean[] bremAppr, double x0, double y0, double x1, double y1)
+    {
+        double dx = Math.abs(x1 - x0);
+        double dy = Math.abs(y1 - y0);
 
-        boolean min = true;
+        int x = (int)Math.floor(x0);
+        int y = (int)Math.floor(y0);
 
-        for(int xx = x1; xx <= x2; xx++) {
-            int indx = zz * SHADEX + xx;
+        int n = 1;
+        int x_inc, y_inc;
+        double error;
 
-            //if(shades[(int)Math.ceil(zz) * SHADEX + (int)Math.floor(xx)] == false){
-            //	return true;
-            //}
-            //if(shades[(int)Math.floor(zz) * SHADEX + (int)Math.ceil(xx)] == false){
-            //	return true;
-            //}
-            error = error + deltaz;
-            if(2 * error >= deltax) {
-                zz = zz + 1;
-                error -= deltax;
+        if (dx == 0)
+        {
+            x_inc = 0;
+            error = Double.POSITIVE_INFINITY;
+        }
+        else if (x1 > x0)
+        {
+            x_inc = 1;
+            n += (int)Math.floor(x1) - x;
+            error = (Math.floor(x0) + 1 - x0) * dy;
+        }
+        else
+        {
+            x_inc = -1;
+            n += x - (int)Math.floor(x1);
+            error = (x0 - Math.floor(x0)) * dy;
+        }
+
+        if (dy == 0)
+        {
+            y_inc = 0;
+            error -= Double.POSITIVE_INFINITY;
+        }
+        else if (y1 > y0)
+        {
+            y_inc = 1;
+            n += (int)Math.floor(y1) - y;
+            error -= (Math.floor(y0) + 1 - y0) * dx;
+        }
+        else
+        {
+            y_inc = -1;
+            n += y - (int)Math.floor(y1);
+            error -= (y0 - Math.floor(y0)) * dx;
+        }
+
+        for (; n > 0; --n)
+        {
+            bremAppr[y * rX + x] = true;
+            //visit(x, y);
+
+            if (error > 0)
+            {
+                y += y_inc;
+                error -= dx;
+            }
+            else
+            {
+                x += x_inc;
+                error += dy;
             }
         }
-
-        return min;
     }
 
 
     public static ShadeConstants recalcGLOBAL(){
-        GLOBAL = new ShadeConstants(ADEG, BDEG);
+        GLOBAL = new ShadeConstants(ShadeConstants.ADEG, ShadeConstants.BDEG);
         return GLOBAL;
     }
 
@@ -121,7 +203,6 @@ public class ShadeConstants {
         return max.rX * max.rZ;
     }
 }
-
 enum ShadeDir{
     upleft, upright
 }
