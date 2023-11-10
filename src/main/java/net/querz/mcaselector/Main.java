@@ -5,6 +5,7 @@ import net.querz.mcaselector.cli.ParamExecutor;
 import net.querz.mcaselector.config.Config;
 import net.querz.mcaselector.config.ConfigProvider;
 import net.querz.mcaselector.logging.Logging;
+import net.querz.mcaselector.realshading.ShadeConstants;
 import net.querz.mcaselector.ui.Window;
 import net.querz.mcaselector.text.Translation;
 import net.querz.mcaselector.validation.ShutdownHooks;

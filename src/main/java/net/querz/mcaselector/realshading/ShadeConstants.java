@@ -1,19 +1,17 @@
 package net.querz.mcaselector.realshading;
 
 import javafx.util.Pair;
-import net.querz.mcaselector.config.Config;
 import net.querz.mcaselector.config.ConfigProvider;
 
 import java.util.HashMap;
-import java.util.Queue;
 
 public class ShadeConstants {
-    public static int SHADEMOODYNESS = (int)(0.7 * -100);
-    public static double ADEG = 240, BDEG = 20;
+    public static int SHADEMOODYNESS = (int)(0.8 * -100);
+    public static final double MINB = 5;
+    public static double ADEG = 135, BDEG = 30;
 
     public static ShadeConstants GLOBAL = recalcGLOBAL();
-    public static final int MAXrXrZ = calcMAXrXrZ(5);
-
+    public static final ShadeConstants MAX = new ShadeConstants(135.1, MINB);
 
 
     public ShadeDir dir;
@@ -25,8 +23,9 @@ public class ShadeConstants {
     public int xp, zp;
     public int rX, rZ;
     public HashMap<Pair<Byte, Byte>, Byte> path;
+    public HashMap<Pair<Byte, Byte>, Boolean> part;
     public byte maxdist;
-    public HashMap<Byte, Boolean> single;
+    public boolean[] single;
 
 
 
@@ -81,7 +80,8 @@ public class ShadeConstants {
 
     private void calcPath() {
         path = new HashMap<>();
-        single = new HashMap<>();
+        part = new HashMap<>();
+        single = new boolean[100];
         boolean[] bremArr = new boolean[rX * rZ];
 
         float a = 0.8f;
@@ -94,44 +94,56 @@ public class ShadeConstants {
         for(int i=0;i<arr.length;i++) arr[i] = -1;
         arr[0] = 0;
         path.put(new Pair<>((byte)0, (byte)0), (byte)(0));
-        single.put((byte)0, true);
+        part.put(new Pair<>((byte)0, (byte)0), true);
+        single[0] = true;
         int curr = 0;
         while(true){
             int br = 0;
 
+            boolean a1 = false, a2 = false;
             for(int i=0;i<rX*rZ;i++){
                 if(arr[i] == curr){
                     if((i + 1) % rX != 0) {
                         int xx = (i + 1) % rX, zz = (i + 1) / rX;
                         xx = xx * xp;
                         zz = zz * zp;
+                        var pair = new Pair<>((byte)xx, (byte)zz);
                         if (arr[i + 1] == -1 && bremArr[i + 1]) {
                             arr[i + 1] = curr + 1;
-                            path.put(new Pair<>((byte)xx, (byte)zz), (byte)(curr + 1));
+                            path.put(pair, (byte)(curr + 1));
+                            part.put(pair, false);
                             br++;
+                            a1 = true;
                         }
                     }
                     if((i + rX) / rX < rZ) {
                         int xx = (i + rX) % rX, zz = (i + rX) / rX;
                         xx = xx * xp;
                         zz = zz * zp;
+                        var pair = new Pair<>((byte)xx, (byte)zz);
                         if (arr[i + rX] == -1 && bremArr[i + rX]) {
                             arr[i + rX] = curr + 1;
-                            path.put(new Pair<>((byte)xx, (byte)zz), (byte)(curr + 1));
+                            path.put(pair, (byte)(curr + 1));
+                            part.put(pair, true);
                             br++;
+                            a2 = true;
                         }
                     }
                 }
             }
 
+            if(br == 2){
+                if(!(a1 && a2)) System.out.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+            }
             if(br == 0){
                 maxdist = (byte)curr;
                 break;
             } else {
-                single.put((byte)(curr + 1), br == 1);
+                single[curr + 1] = (br == 1);
             }
 
             curr++;
+            int gergwer = 234;
         }
     }
 
@@ -221,10 +233,6 @@ public class ShadeConstants {
         return (int)a;
     }
 
-    private static int calcMAXrXrZ(double minB){
-        var max = new ShadeConstants(135.1, minB);
-        return max.rX * max.rZ;
-    }
 }
 enum ShadeDir{
     upleft, upright,

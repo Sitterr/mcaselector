@@ -112,21 +112,16 @@ public final class TileImage {
 			short[] terrainHeights = new short[pixels];
 			short[] waterHeights = ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater() && !ConfigProvider.WORLD.getRenderCaves() ? new short[pixels] : null;
 			boolean[] shades = null;
+			byte[] continuities = null;
 
 			// get shading
-			if(ConfigProvider.WORLD.getRenderingMode() == RenderingMode.SHADE){
-				//x0 = (ShadeConstants.GLOBAL.rX - 1) * 512;
-				//z0 = (ShadeConstants.GLOBAL.rZ - 1) * 512;
+			if(ConfigProvider.WORLD.getRenderingMode() == RenderingMode.SHADE) {
+				continuities = new byte[ShadeConstants.GLOBAL.rX * ShadeConstants.GLOBAL.rZ];
 				shades = new boolean[(ShadeConstants.GLOBAL.rX * 512) * (ShadeConstants.GLOBAL.rZ * 512)];
 
 				for(byte _iz = 0; _iz < ShadeConstants.GLOBAL.rZ; _iz++) {
 					for (byte _ix = 0; _ix < ShadeConstants.GLOBAL.rX; _ix++) {
-						byte ix = (byte)(_ix * ShadeConstants.GLOBAL.xp), iz = (byte)(_iz * ShadeConstants.GLOBAL.zp);
-						byte dist = ShadeConstants.GLOBAL.getPath(new Pair<>(ix, iz));
-						var point = new Point2i(loc.getX() + ix, loc.getZ() + iz);
-						if(dist != -1){
-							Shade.get(scale, point.asLong(), dist, shades, (short)ShadeConstants.GLOBAL.nflowX(_ix, 0, ShadeConstants.GLOBAL.rX) * 512, (short)ShadeConstants.GLOBAL.nflowZ(_iz, 0, ShadeConstants.GLOBAL.rZ) * 512, ShadeConstants.GLOBAL.rX * 512, ShadeConstants.GLOBAL.rZ * 512);
-						}
+						continuities[_iz * ShadeConstants.GLOBAL.rX + _ix] = Shade.get(scale, loc, shades, _ix, _iz);
 					}
 				}
 			}
@@ -149,19 +144,10 @@ public final class TileImage {
 			}
 
 			// save shading
-			if(ConfigProvider.WORLD.getRenderingMode() == RenderingMode.SHADE){
-
+			if(ConfigProvider.WORLD.getRenderingMode() == RenderingMode.SHADE) {
 				for(byte _iz = 0; _iz < ShadeConstants.GLOBAL.rZ; _iz++) {
 					for (byte _ix = 0; _ix < ShadeConstants.GLOBAL.rX; _ix++) {
-						byte ix = (byte)(_ix * ShadeConstants.GLOBAL.xp), iz = (byte)(_iz * ShadeConstants.GLOBAL.zp);
-						byte dist = ShadeConstants.GLOBAL.getPath(new Pair<>(ix, iz));
-						var point = new Point2i(loc.getX() + ix, loc.getZ() + iz);
-						if(dist != -1) {
-							Shade.add(scale, point.asLong(), dist, shades, (short)ShadeConstants.GLOBAL.nflowX(_ix, 0, ShadeConstants.GLOBAL.rX) * 512, (short)ShadeConstants.GLOBAL.nflowZ(_iz, 0, ShadeConstants.GLOBAL.rZ) * 512, ShadeConstants.GLOBAL.rX * 512, ShadeConstants.GLOBAL.rZ * 512);
-						}
-						if(dist == ShadeConstants.GLOBAL.maxdist) {
-							Shade.delete(point.asLong());
-						}
+						Shade.add(scale, loc, shades, continuities[_iz * ShadeConstants.GLOBAL.rX + _ix], _ix, _iz);
 					}
 				}
 			}

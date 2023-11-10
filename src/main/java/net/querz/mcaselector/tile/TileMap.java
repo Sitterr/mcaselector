@@ -15,6 +15,7 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.input.*;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.util.Pair;
 import net.querz.mcaselector.config.Config;
 import net.querz.mcaselector.config.ConfigProvider;
 import net.querz.mcaselector.io.*;
@@ -43,6 +44,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -226,13 +228,14 @@ public class TileMap extends Canvas implements ClipboardOwner {
 				DataProperty<Integer> priority = new DataProperty<>(1);
 
 				if(ConfigProvider.WORLD.getRenderingMode() == TileImage.RenderingMode.SHADE) {
-					runOnVisibleRegionsSHADE(region -> {
+					runOnVisibleRegionsSHADE((region, hardLoad) -> {
 						Tile tile = tiles.get(region.asLong());
 						if (tile == null) {
 							tile = new Tile(region);
 							tiles.put(region.asLong(), tile);
 						}
-						imgPool.requestImage(tile, zoomLevel);
+						if(hardLoad) imgPool.requestNewImage(tile, zoomLevel, false);
+						else imgPool.requestAvailableImage(tile, zoomLevel);
 					}, new Point2f(), () -> scale);
 				} else {
 					runOnVisibleRegions(region -> {
@@ -283,33 +286,6 @@ public class TileMap extends Canvas implements ClipboardOwner {
 			}
 		}, 500, 500, TimeUnit.MILLISECONDS);
 	}
-
-
-
-
-
-	public void requestImage(Point2i region, int zoomLevel){
-		Tile tile = tiles.get(region.asLong());
-		if (tile == null) {
-			tile = new Tile(region);
-			tiles.put(region.asLong(), tile);
-		}
-		imgPool.requestImage(tile, zoomLevel);
-	}
-	public Tile getTile(Point2i region){
-		Tile tile = tiles.get(region.asLong());
-		if (tile == null) {
-			tile = new Tile(region);
-			tiles.put(region.asLong(), tile);
-		}
-		return tile;
-	}
-	public boolean isFirstVisibleRow(Point2i region){
-		Point2i min = offset.sub(new Point2f()).toPoint2i().blockToRegion();
-		return region.getZ() == min.getZ();
-	}
-
-
 
 	private void initDrawService() {
 		drawService = Executors.newSingleThreadScheduledExecutor();
@@ -1196,53 +1172,41 @@ public class TileMap extends Canvas implements ClipboardOwner {
 		}
 	}
 
-	public void runOnVisibleRegionsSHADE(Consumer<Point2i> consumer, Point2f additionalOffset, Supplier<Float> scaleSupplier) {
+	public void runOnVisibleRegionsSHADE(BiConsumer<Point2i, Boolean> consumer, Point2f additionalOffset, Supplier<Float> scaleSupplier) {
 		float scale = scaleSupplier.get();
 		Point2i min = offset.sub(additionalOffset).toPoint2i().blockToRegion();
 		Point2i max = offset.sub(additionalOffset).add((float) getWidth() * scale, (float) getHeight() * scale).toPoint2i().blockToRegion();
 
-		int width = Math.abs(max.getX() - min.getX()) + 1, height = Math.abs(max.getZ() - min.getZ()) + 1;
+		for(int zz = min.getZ(); zz <= max.getZ(); zz++) {
+			for (int xx = min.getX(); xx <= max.getX(); xx++) {
+				Point2i loc = new Point2i(xx, zz);
 
-		boolean[] temp = new boolean[height * width];
+				boolean basis = true, exists = true;
+				for(Map.Entry<Pair<Byte, Byte>, Byte> entry : ShadeConstants.GLOBAL.path.entrySet()){
+					int x = loc.getX() + entry.getKey().getKey(), z = loc.getZ() + entry.getKey().getValue();
+					var xzpoint = new Point2i(x, z);
+					var tileShades = Shade._get(xzpoint.asLong());
+					byte dist = entry.getValue();
 
-		for(int zz = 0; zz < height; zz++) {
-			for (int xx = 0; xx < width; xx++) {
-				int i = zz * width + xx;
-				var region = new Point2i(min.getX() + xx, min.getZ() + zz);
-				var tile = this.getTile(region);
-
-
-				synchronized (Shade.b) {
-
-					if (!Shade.isEmpty(region.asLong())) {
-						if (!temp[i]) {
-							if (!RegionImageGenerator.isLoading(tile)) {
-								Shade.saveToLoading(region.asLong());
-								consumer.accept(region);
-								//System.out.println(region);
-							}
+					if(x >= min.getX() && x <= max.getX() && z >= min.getZ() && z <= max.getZ()){
+						if(!tileShades.isAlreadyDone(dist, ShadeConstants.GLOBAL.part.get(entry.getKey()) ? 1 : 0)){
+							exists = false;
 						}
-
-						var pairs = Shade.getPairs(region.asLong(), true);
-
-						for (int gz = 0; gz < ShadeConstants.GLOBAL.rZ; gz++) {
-							for (int gx = 0; gx < ShadeConstants.GLOBAL.rX; gx++) {
-								if (pairs.isFull(gz * ShadeConstants.GLOBAL.rX + gx)) {
-									for (int rz = 0; rz <= gz; rz++) {
-										for (int rx = 0; rx <= gx; rx++) {
-											if ((zz + rz) < height && (xx + rx) < width)
-												temp[(zz + rz) * width + (xx + rx)] = true;
-										}
-									}
-								}
-							}
+						if(!tileShades.isCurrent(dist)){
+							basis = false;
+							break;
 						}
-
-					} else {
-						consumer.accept(region);
 					}
-
 				}
+
+				boolean hardLoad;
+				if(basis && !exists){
+					hardLoad = true;
+					//System.out.println("hard" + loc);
+				} else {
+					hardLoad = false;
+				}
+				consumer.accept(loc, hardLoad);
 			}
 		}
 	}
