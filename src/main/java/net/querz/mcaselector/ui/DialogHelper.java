@@ -471,6 +471,40 @@ public class DialogHelper {
 		});
 	}
 
+	public static void expandToDisplay(TileMap tileMap, boolean rotate) {
+		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+		int width = (int)Math.ceil(screenSize.getWidth() / 16);
+		int height = (int)Math.ceil(screenSize.getHeight() / 16);
+		if(rotate) { // swap
+			int a = width;
+			width = height;
+			height = a;
+		}
+
+		var region = tileMap.getSelection().iterator().next();
+		var chunkSet = region.getValue();
+		var regionLoc = new Point2i(region.getLongKey()).regionToChunk();
+		Point2i loc = null;
+		for(int i=0;i<32;i++){
+			for(int j=0;j<32;j++){
+				short rel = new Point2i(i, j).asChunkIndex();
+				if(chunkSet.get(rel)){
+					loc = new Point2i(regionLoc.getX() + i, regionLoc.getZ() + j);
+					break;
+				}
+			}
+		}
+
+		Selection newSelection = new Selection();
+		for(int z = -height / 2; z < height / 2; z++){
+			for(int x = -width / 2;x  < width / 2; x++){
+				newSelection.addChunk(new Point2i(loc.getX() + x, loc.getZ() + z));
+			}
+		}
+		tileMap.setSelection(newSelection);
+		tileMap.reload();
+	}
+
 	public static void copySelectedChunks(TileMap tileMap) {
 		Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 		SelectionData data = new SelectionData(tileMap.getSelection(), ConfigProvider.WORLD.getWorldDirs());

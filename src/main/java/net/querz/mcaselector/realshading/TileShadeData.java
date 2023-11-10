@@ -2,7 +2,7 @@ package net.querz.mcaselector.realshading;
 
 public class TileShadeData {
     private static final boolean[] EMPTYSHADE = new boolean[512 * 512];
-    private static final int max = ShadeConstants.MAX.maxdist + 1;
+    private static final int max = ShadeConstants.MAX.maxdist + 2;
     private LevelTileShadeData[] levels = new LevelTileShadeData[max];
     private byte continuity = 0;
 
@@ -53,10 +53,9 @@ public class TileShadeData {
         System.out.println(" -> saved");
     }
     public boolean[] get(byte dist) {
-        if(dist == -1) return EMPTYSHADE;
+        if(dist == -1) return null;
         var shades = getLevel(dist).shadePlain;
-        if(shades != null) return shades;
-        else return EMPTYSHADE;
+        return shades;
     }
 
     public boolean isCurrent(byte dist){

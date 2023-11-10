@@ -38,12 +38,14 @@ public class Shade {
         var arr = a.get((byte)(distance - 1));
         System.out.println("read: " + new Point2i(nachRegion.getX() + ix, nachRegion.getZ() + iz) + " | level: " + (distance - 1));
 
-        synchronized (a) {
-            int sx = Math.min(Tile.SIZE, (ShadeConstants.GLOBAL.rX * 512) - offsetX), sz = Math.min(Tile.SIZE, (ShadeConstants.GLOBAL.rZ * 512) - offsetZ);
-            for (int xx = offsetX; xx < offsetX + sx; xx++) {
-                for (int zz = offsetZ; zz < offsetZ + sz; zz++) {
-                    int ai = (zz - offsetZ) * Tile.SIZE + (xx - offsetX), si = zz * (ShadeConstants.GLOBAL.rX * 512) + xx;
-                    shading[si] = arr[ai];
+        if(arr != null) {
+            synchronized (a) {
+                int sx = Math.min(Tile.SIZE, (ShadeConstants.GLOBAL.rX * 512) - offsetX), sz = Math.min(Tile.SIZE, (ShadeConstants.GLOBAL.rZ * 512) - offsetZ);
+                for (int xx = offsetX; xx < offsetX + sx; xx++) {
+                    for (int zz = offsetZ; zz < offsetZ + sz; zz++) {
+                        int ai = (zz - offsetZ) * Tile.SIZE + (xx - offsetX), si = zz * (ShadeConstants.GLOBAL.rX * 512) + xx;
+                        shading[si] = arr[ai];
+                    }
                 }
             }
         }

@@ -29,6 +29,8 @@ menu.view.clear_all_cache;Clear all cache
 menu.selection.clear;Clear
 menu.selection.invert;Invert
 menu.selection.invert_regions;Invert selected regions
+menu.selection.select_1920x1080; Select 1920x1080
+menu.selection.select_1080x1920; Select 1080x1920
 menu.selection.copy_chunks;Copy chunks
 menu.selection.paste_chunks;Paste chunks
 menu.selection.export_chunks;Export selected chunks

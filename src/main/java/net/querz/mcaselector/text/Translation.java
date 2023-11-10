@@ -48,6 +48,8 @@ public enum Translation {
 	MENU_SELECTION_CLEAR("menu.selection.clear"),
 	MENU_SELECTION_INVERT("menu.selection.invert"),
 	MENU_SELECTION_INVERT_REGIONS("menu.selection.invert_regions"),
+	MENU_SELECTION_SELECT_1920x1080("menu.selection.select_1920x1080"),
+	MENU_SELECTION_SELECT_1080x1920("menu.selection.select_1080x1920"),
 	MENU_SELECTION_COPY_CHUNKS("menu.selection.copy_chunks"),
 	MENU_SELECTION_PASTE_CHUNKS("menu.selection.paste_chunks"),
 	MENU_SELECTION_EXPORT_CHUNKS("menu.selection.export_chunks"),

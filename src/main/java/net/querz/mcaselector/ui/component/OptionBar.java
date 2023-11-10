@@ -71,6 +71,8 @@ public class OptionBar extends BorderPane {
 	private final MenuItem clear = UIFactory.menuItem(Translation.MENU_SELECTION_CLEAR);
 	private final MenuItem invert = UIFactory.menuItem(Translation.MENU_SELECTION_INVERT);
 	private final MenuItem invertRegions = UIFactory.menuItem(Translation.MENU_SELECTION_INVERT_REGIONS);
+	private final MenuItem select1920x1080 = UIFactory.menuItem(Translation.MENU_SELECTION_SELECT_1920x1080);
+	private final MenuItem select1080x1920 = UIFactory.menuItem(Translation.MENU_SELECTION_SELECT_1080x1920);
 	private final MenuItem copy = UIFactory.menuItem(Translation.MENU_SELECTION_COPY_CHUNKS);
 	private final MenuItem paste = UIFactory.menuItem(Translation.MENU_SELECTION_PASTE_CHUNKS);
 	private final MenuItem exportChunks = UIFactory.menuItem(Translation.MENU_SELECTION_EXPORT_CHUNKS);
@@ -113,6 +115,7 @@ public class OptionBar extends BorderPane {
 				saveScreenshot, UIFactory.separator(),
 				clearViewCache, clearAllCache);
 		selection.getItems().addAll(
+				select1920x1080, select1080x1920, UIFactory.separator(),
 				clear, invert, invertRegions, UIFactory.separator(),
 				copy, paste, UIFactory.separator(),
 				exportChunks, delete, UIFactory.separator(),
@@ -170,6 +173,8 @@ public class OptionBar extends BorderPane {
 		clear.setOnAction(e -> tileMap.clearSelection());
 		invert.setOnAction(e -> tileMap.invertSelection());
 		invertRegions.setOnAction(e -> tileMap.invertRegionsWithSelection());
+		select1920x1080.setOnAction(e -> DialogHelper.expandToDisplay(tileMap, false));
+		select1080x1920.setOnAction(e -> DialogHelper.expandToDisplay(tileMap, true));
 		copy.setOnAction(e -> DialogHelper.copySelectedChunks(tileMap));
 		paste.setOnAction(e -> DialogHelper.pasteSelectedChunks(tileMap, primaryStage));
 		exportChunks.setOnAction(e -> DialogHelper.exportSelectedChunks(tileMap, primaryStage));
@@ -310,6 +315,8 @@ public class OptionBar extends BorderPane {
 		clearSelectionCache.setDisable(selected == 0 && !inverted);
 		editNBT.setDisable(selected != 1 || inverted);
 		swapChunks.setDisable(selected != 2 || inverted);
+		select1920x1080.setDisable(selected != 1);
+		select1080x1920.setDisable(selected != 1);
 		copy.setDisable(selected == 0 && !inverted);
 		invertRegions.setDisable(selected == 0 || inverted);
 		sumSelection.setDisable((tileMap.getOverlay() == null || selected == 0));
