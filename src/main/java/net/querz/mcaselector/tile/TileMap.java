@@ -1181,6 +1181,10 @@ public class TileMap extends Canvas implements ClipboardOwner {
 			for (int xx = min.getX(); xx <= max.getX(); xx++) {
 				Point2i loc = new Point2i(xx, zz);
 
+				if(loc.getX() == 1 && loc.getZ() == 1){
+					int rgwerg = 134;
+				}
+
 				boolean basis = true, exists = true;
 				for(Map.Entry<Pair<Byte, Byte>, Byte> entry : ShadeConstants.GLOBAL.path.entrySet()){
 					int x = loc.getX() + entry.getKey().getKey(), z = loc.getZ() + entry.getKey().getValue();

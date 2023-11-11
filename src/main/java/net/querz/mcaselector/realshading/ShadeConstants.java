@@ -8,7 +8,7 @@ import java.util.HashMap;
 public class ShadeConstants {
     public static int SHADEMOODYNESS = (int)(0.5 * -100);
     public static final double MINB = 5;
-    public static double ADEG = 120, BDEG = 5;
+    public static double ADEG = 135, BDEG = 5;
 
     public static ShadeConstants GLOBAL = recalcGLOBAL();
     public static final ShadeConstants MAX = new ShadeConstants(135.1, MINB);
@@ -102,6 +102,11 @@ public class ShadeConstants {
 
             boolean a1 = false, a2 = false;
             for(int i=0;i<rX*rZ;i++){
+
+                if(curr == 1){
+                    int qw = 34;
+                }
+
                 if(arr[i] == curr){
                     if((i + 1) % rX != 0) {
                         int xx = (i + 1) % rX, zz = (i + 1) / rX;
@@ -113,6 +118,11 @@ public class ShadeConstants {
                             path.put(pair, (byte)(curr + 1));
                             part.put(pair, false);
                             br++;
+                            a1 = true;
+                        } else if(arr[i + 1] == curr + 1 && bremArr[i + 1] && br == 1 && !a1) {
+                            part.put(pair, false);
+                            a2 = false;
+                            //a2 = false;
                             a1 = true;
                         }
                     }
@@ -133,7 +143,9 @@ public class ShadeConstants {
             }
 
             if(br == 2){
-                if(!(a1 && a2)) System.out.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+                if(!(a1 && a2)){
+                    System.out.println(curr + ", " + a1 + "|" + a2 + " AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+                }
             }
             if(br == 0){
                 maxdist = (byte)curr;

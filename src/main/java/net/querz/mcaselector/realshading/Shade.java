@@ -12,7 +12,11 @@ public class Shade {
     private static final HashMap<Long, TileShadeData> pool = new HashMap<>();
 
     public static double getMBSize(){
-        return ((double)pool.size() * (512 * 512 + 8)) / (8 * 1048576);
+        double memory = 0;
+        for(var entr : pool.entrySet()){
+            memory += entr.getValue().memory();
+        }
+        return (memory) / (8 * 1048576);
     }
 
 
