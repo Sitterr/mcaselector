@@ -188,6 +188,8 @@ public class TileMap extends Canvas implements ClipboardOwner {
 
 				// clean up all queues based on visible tiles
 				JobHandler.validateJobs(j -> {
+					if(ConfigProvider.WORLD.getRenderingMode() == TileImage.RenderingMode.SHADE) return false;
+
 					if (j instanceof RegionImageGenerator.MCAImageProcessJob job) {
 						if (!job.getTile().isVisible(this)) {
 							LOGGER.debug("removing {} for tile {} from queue", job.getClass().getSimpleName(), job.getTile().getLocation());
@@ -1181,22 +1183,25 @@ public class TileMap extends Canvas implements ClipboardOwner {
 			for (int xx = min.getX(); xx <= max.getX(); xx++) {
 				Point2i loc = new Point2i(xx, zz);
 
-				if(loc.getX() == 1 && loc.getZ() == 1){
-					int rgwerg = 134;
-				}
-
 				boolean basis = true, exists = true;
 				for(Map.Entry<Pair<Byte, Byte>, Byte> entry : ShadeConstants.GLOBAL.path.entrySet()){
 					int x = loc.getX() + entry.getKey().getKey(), z = loc.getZ() + entry.getKey().getValue();
-					var xzpoint = new Point2i(x, z);
+					Point2i xzpoint = new Point2i(x, z);
 					var tileShades = Shade._get(xzpoint.asLong());
 					byte dist = entry.getValue();
 
 					if(x >= min.getX() && x <= max.getX() && z >= min.getZ() && z <= max.getZ()){
-						if(!tileShades.isAlreadyDone(dist, ShadeConstants.GLOBAL.part.get(entry.getKey()) ? 1 : 0)){
+						if(loc.asLong() != xzpoint.asLong()) {
+							if (RegionImageGenerator.isLoading(tiles.get(xzpoint.asLong()))) {
+								basis = false;
+								break;
+							}
+						}
+
+						if (!tileShades.isAlreadyDone(dist, ShadeConstants.GLOBAL.part.get(entry.getKey()) ? 1 : 0)) {
 							exists = false;
 						}
-						if(!tileShades.isCurrent(dist)){
+						if (!tileShades.isCurrent(dist)) {
 							basis = false;
 							break;
 						}

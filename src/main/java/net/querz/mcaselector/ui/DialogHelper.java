@@ -502,7 +502,8 @@ public class DialogHelper {
 			}
 		}
 		tileMap.setSelection(newSelection);
-		tileMap.reload();
+		tileMap.draw();
+		//tileMap.reload();
 	}
 
 	public static void copySelectedChunks(TileMap tileMap) {

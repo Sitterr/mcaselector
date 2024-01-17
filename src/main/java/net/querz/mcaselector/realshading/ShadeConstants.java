@@ -6,9 +6,9 @@ import net.querz.mcaselector.config.ConfigProvider;
 import java.util.HashMap;
 
 public class ShadeConstants {
-    public static int SHADEMOODYNESS = (int)(0.5 * -100);
+    public static int SHADEMOODYNESS = (int)(0.7 * -100);
     public static final double MINB = 5;
-    public static double ADEG = 135, BDEG = 5;
+    public static double ADEG = 135, BDEG = 10;
 
     public static ShadeConstants GLOBAL = recalcGLOBAL();
     public static final ShadeConstants MAX = new ShadeConstants(135.1, MINB);

@@ -30,7 +30,7 @@ public class Shade {
         return a;
     }
 
-    public static byte get(int scale, Point2i nachRegion, boolean[] shading, int _ix, int _iz){
+    public static byte get(Point2i nachRegion, boolean[] shading, int _ix, int _iz){
         byte ix = (byte)(_ix * ShadeConstants.GLOBAL.xp), iz = (byte)(_iz * ShadeConstants.GLOBAL.zp);
         var region = new Point2i(nachRegion.getX() + ix, nachRegion.getZ() + iz).asLong();
         byte distance = ShadeConstants.GLOBAL.getPath(new Pair<>(ix, iz));
@@ -57,7 +57,7 @@ public class Shade {
         return a.getContinuity();
     }
 
-    public static void add(int scale, Point2i nachRegion, boolean[] shading, byte continuity, int _ix, int _iz){
+    public static void add(Point2i nachRegion, boolean[] shading, byte continuity, int _ix, int _iz){
         byte ix = (byte)(_ix * ShadeConstants.GLOBAL.xp), iz = (byte)(_iz * ShadeConstants.GLOBAL.zp);
         var region = new Point2i(nachRegion.getX() + ix, nachRegion.getZ() + iz).asLong();
         byte distance = ShadeConstants.GLOBAL.getPath(new Pair<>(ix, iz));

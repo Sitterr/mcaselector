@@ -1,5 +1,6 @@
 package net.querz.mcaselector.tile;
 
+import groovyjarjarantlr4.v4.runtime.atn.PredicateTransition;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.*;
@@ -166,7 +167,16 @@ public final class ImagePool {
 
 
 		RegionImageGenerator.setLoading(tile, true);
-		RegionImageGenerator.generate(tile, (img, uuid) -> {
+		RegionImageGenerator.generate(tile, () -> {
+			boolean goon = tile.isVisible(tileMap);
+			if (goon) {
+				var img = TileImage.markImage(tile.getImage(), zoomLevel);
+				tile.setImage(img);
+				push(zoomLevel, tile.location, img);
+				tileMap.draw();
+			}
+			return goon;
+		}, (img, uuid) -> {
 			tile.setImage(img);
 			tile.loaded = true;
 			RegionImageGenerator.setLoading(tile, false);

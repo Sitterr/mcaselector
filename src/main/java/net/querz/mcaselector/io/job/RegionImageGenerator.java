@@ -37,10 +37,10 @@ public final class RegionImageGenerator {
 
 	private RegionImageGenerator() {}
 
-	public static void generate(Tile tile, BiConsumer<Image, UniqueID> callback, Integer zoomLevel, Progress progressChannel, boolean canSkipSaving, Supplier<Integer> prioritySupplier) {
+	public static void generate(Tile tile, Supplier<Boolean> onstart, BiConsumer<Image, UniqueID> callback, Integer zoomLevel, Progress progressChannel, boolean canSkipSaving, Supplier<Integer> prioritySupplier) {
 		LOGGER.debug("adding job {}, tile:{}, scale:{}, loading:{}, image:{}, loaded:{}",
 			MCAImageProcessJob.class.getSimpleName(), tile.getLocation(), zoomLevel, isLoading(tile), tile.getImage() == null ? "null" : tile.getImage().getHeight() + "x" + tile.getImage().getWidth(), tile.isLoaded());
-		JobHandler.addJob(new MCAImageProcessJob(tile, new UniqueID(), callback, zoomLevel, progressChannel, canSkipSaving, prioritySupplier));
+		JobHandler.addJob(new MCAImageProcessJob(tile, new UniqueID(), onstart, callback, zoomLevel, progressChannel, canSkipSaving, prioritySupplier));
 	}
 
 	public static RegionMCAFile getCachedRegionMCAFile(Point2i region) {
@@ -82,6 +82,7 @@ public final class RegionImageGenerator {
 	}
 
 	public static boolean isLoading(Tile tile) {
+		if(tile == null) return false;
 		return loading.contains(tile.getLocation());
 	}
 
@@ -131,16 +132,17 @@ public final class RegionImageGenerator {
 		private final Tile tile;
 		private final UniqueID uniqueID;
 		private final BiConsumer<Image, UniqueID> callback;
+		private final Supplier<Boolean> onstart;
 		private final Integer zoomLevel;
 		private final Progress progressChannel;
 		private final boolean canSkipSaving;
 		private final Supplier<Integer> prioritySupplier;
 
-		private MCAImageProcessJob(Tile tile, UniqueID uniqueID, BiConsumer<Image, UniqueID> callback, Integer zoomLevel, Progress progressChannel, boolean canSkipSaving, Supplier<Integer> prioritySupplier) {
+		private MCAImageProcessJob(Tile tile, UniqueID uniqueID, Supplier<Boolean>  onstart, BiConsumer<Image, UniqueID> callback, Integer zoomLevel, Progress progressChannel, boolean canSkipSaving, Supplier<Integer> prioritySupplier) {
 			super(new RegionDirectories(tile.getLocation(), null, null, null), PRIORITY_LOW);
 			this.tile = tile;
 			this.uniqueID = uniqueID;
-			this.callback = callback;
+			this.callback = callback; this.onstart = onstart;
 			this.zoomLevel = zoomLevel;
 			this.progressChannel = progressChannel;
 			this.canSkipSaving = canSkipSaving;
@@ -152,6 +154,10 @@ public final class RegionImageGenerator {
 
 		@Override
 		public boolean execute() {
+			if(!onstart.get()){
+				callback.accept(null, uniqueID);
+				return true;
+			}
 			RegionMCAFile cachedRegion = getCachedRegionMCAFile(tile.getLocation());
 			byte[] data = null;
 			if (cachedRegion == null) {

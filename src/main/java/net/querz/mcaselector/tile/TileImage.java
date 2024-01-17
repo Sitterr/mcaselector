@@ -1,5 +1,6 @@
 package net.querz.mcaselector.tile;
 
+import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelFormat;
@@ -24,6 +25,8 @@ import net.querz.mcaselector.io.ImageHelper;
 import net.querz.mcaselector.version.VersionController;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class TileImage {
 
@@ -95,76 +98,134 @@ public final class TileImage {
 		tile.markedChunksImage = wImage;
 	}
 
-	public static Image generateImage(RegionMCAFile mcaFile, int scale) {
-		Point2i loc = mcaFile.getLocation();
+	private static ConcurrentHashMap<Long, Long> locks = new ConcurrentHashMap<Long, Long>();
+	private static Object getCacheSyncObject(final Long id) {
+		locks.putIfAbsent(id, id);
+		return locks.get(id);
+	}
 
-		int size = Tile.SIZE / scale;
-		int chunkSize = Tile.CHUNK_SIZE / scale;
+	public static Image markImage(Image image, int scale){
+		int s = Tile.SIZE / scale;
 		int pixels = Tile.PIXELS / (scale * scale);
 
+		var color = javafx.scene.paint.Color.BLUE;
+		javafx.scene.image.WritableImage writableImage = new javafx.scene.image.WritableImage(s, s);
+		PixelWriter pixelWriter = writableImage.getPixelWriter();
+		//int[] pixelBuffer = new int[pixels];
 
-		try {
-
-			WritableImage finalImage = new WritableImage(size, size);
-			PixelWriter writer = finalImage.getPixelWriter();
-			int[] pixelBuffer = new int[pixels];
-			int[] waterPixels = ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater() && !ConfigProvider.WORLD.getRenderCaves() ? new int[pixels] : null;
-			short[] terrainHeights = new short[pixels];
-			short[] waterHeights = ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater() && !ConfigProvider.WORLD.getRenderCaves() ? new short[pixels] : null;
-			boolean[] shades = null;
-			byte[] continuities = null;
-
-			// get shading
-			if(ConfigProvider.WORLD.getRenderingMode() == RenderingMode.SHADE) {
-				continuities = new byte[ShadeConstants.GLOBAL.rX * ShadeConstants.GLOBAL.rZ];
-				shades = new boolean[(ShadeConstants.GLOBAL.rX * 512) * (ShadeConstants.GLOBAL.rZ * 512)];
-
-				for(byte _iz = 0; _iz < ShadeConstants.GLOBAL.rZ; _iz++) {
-					for (byte _ix = 0; _ix < ShadeConstants.GLOBAL.rX; _ix++) {
-						continuities[_iz * ShadeConstants.GLOBAL.rX + _ix] = Shade.get(scale, loc, shades, _ix, _iz);
-					}
-				}
-			}
-
-			// draw
-			for (int _cz = 0; _cz < Tile.SIZE_IN_CHUNKS; _cz++) {
-				int cz = ShadeConstants.GLOBAL.flowZ(_cz, 0, Tile.SIZE_IN_CHUNKS);
-				for (int _cx = 0; _cx < Tile.SIZE_IN_CHUNKS; _cx++) {
-					int cx = ShadeConstants.GLOBAL.flowX(_cx, 0, Tile.SIZE_IN_CHUNKS);
-					int index = cz * Tile.SIZE_IN_CHUNKS + cx;
-
-					Chunk data = mcaFile.getChunk(index);
-
-					if (data == null) {
-						continue;
-					}
-
-					drawChunkImage(data, cx * chunkSize, cz * chunkSize, scale, pixelBuffer, waterPixels, terrainHeights, waterHeights, shades, ShadeConstants.GLOBAL.nflowX(0, 0, ShadeConstants.GLOBAL.rX) * 512, ShadeConstants.GLOBAL.nflowZ(0, 0, ShadeConstants.GLOBAL.rZ) * 512);
-				}
-			}
-
-			// save shading
-			if(ConfigProvider.WORLD.getRenderingMode() == RenderingMode.SHADE) {
-				for(byte _iz = 0; _iz < ShadeConstants.GLOBAL.rZ; _iz++) {
-					for (byte _ix = 0; _ix < ShadeConstants.GLOBAL.rX; _ix++) {
-						Shade.add(scale, loc, shades, continuities[_iz * ShadeConstants.GLOBAL.rX + _ix], _ix, _iz);
-					}
-				}
-			}
-
-			if (ConfigProvider.WORLD.getRenderCaves()) {
-				flatShade(pixelBuffer, terrainHeights, scale);
-			} else if (ConfigProvider.WORLD.getShade() && !ConfigProvider.WORLD.getRenderLayerOnly()) {
-				shade(pixelBuffer, waterPixels, terrainHeights, waterHeights, scale);
-			}
-
-			writer.setPixels(0, 0, size, size, PixelFormat.getIntArgbPreInstance(), pixelBuffer, 0, size);
-
-			return finalImage;
-		} catch (Exception ex) {
-			LOGGER.warn("failed to create image for MCAFile {}", mcaFile.getFile().getName(), ex);
+		PixelReader pixelReader = null;
+		if(image != null) {
+			pixelReader = image.getPixelReader();
 		}
-		return null;
+
+		for (int x = 0; x < s; x++) {
+			for (int y = 0; y < s; y++) {
+				if(pixelReader != null) pixelWriter.setColor(x, y, pixelReader.getColor(x, y));
+				else pixelWriter.setColor(x, y, javafx.scene.paint.Color.color(0, 0, 0 ,0));
+			}
+		}
+
+
+		// Draw green pixels on the top edge
+		for (int x = 0; x < s; x++) {
+			pixelWriter.setColor(x, 0, color);
+		}
+
+		// Draw green pixels on the bottom edge
+		for (int x = 0; x < s; x++) {
+			pixelWriter.setColor(x, s - 1, color);
+		}
+
+		// Draw green pixels on the left edge
+		for (int y = 0; y < s; y++) {
+			pixelWriter.setColor(0, y, color);
+		}
+
+		// Draw green pixels on the right edge
+		for (int y = 0; y < s; y++) {
+			pixelWriter.setColor(s - 1, y, color);
+		}
+
+		//pixelWriter.setPixels(0, 0, s, s, PixelFormat.getIntArgbPreInstance(), pixelBuffer, 0, size);
+		return writableImage;
+	}
+
+	public static Image generateImage(RegionMCAFile mcaFile, int scale) {
+		Point2i loc = mcaFile.getLocation();
+		//synchronized (getCacheSyncObject(loc.asLong())) {
+
+			int size = Tile.SIZE / scale;
+			int chunkSize = Tile.CHUNK_SIZE / scale;
+			int pixels = Tile.PIXELS / (scale * scale);
+
+
+			try {
+
+				WritableImage finalImage = new WritableImage(size, size);
+				PixelWriter writer = finalImage.getPixelWriter();
+				int[] pixelBuffer = new int[pixels];
+				int[] waterPixels = ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater() && !ConfigProvider.WORLD.getRenderCaves() ? new int[pixels] : null;
+				short[] terrainHeights = new short[pixels];
+				short[] waterHeights = ConfigProvider.WORLD.getShade() && ConfigProvider.WORLD.getShadeWater() && !ConfigProvider.WORLD.getRenderCaves() ? new short[pixels] : null;
+				boolean[] shades = null;
+				byte[] continuities = null;
+
+				// get shading
+				if (ConfigProvider.WORLD.getRenderingMode() == RenderingMode.SHADE) {
+					continuities = new byte[ShadeConstants.GLOBAL.rX * ShadeConstants.GLOBAL.rZ];
+					shades = new boolean[(ShadeConstants.GLOBAL.rX * 512) * (ShadeConstants.GLOBAL.rZ * 512)];
+
+					for (byte _iz = 0; _iz < ShadeConstants.GLOBAL.rZ; _iz++) {
+						for (byte _ix = 0; _ix < ShadeConstants.GLOBAL.rX; _ix++) {
+							continuities[_iz * ShadeConstants.GLOBAL.rX + _ix] = Shade.get(loc, shades, _ix, _iz);
+						}
+					}
+				}
+
+				// draw
+				for (int _cz = 0; _cz < Tile.SIZE_IN_CHUNKS; _cz++) {
+					int cz = ShadeConstants.GLOBAL.flowZ(_cz, 0, Tile.SIZE_IN_CHUNKS);
+					for (int _cx = 0; _cx < Tile.SIZE_IN_CHUNKS; _cx++) {
+						int cx = ShadeConstants.GLOBAL.flowX(_cx, 0, Tile.SIZE_IN_CHUNKS);
+						int index = cz * Tile.SIZE_IN_CHUNKS + cx;
+
+						Chunk data = mcaFile.getChunk(index);
+
+						if (data == null) {
+							continue;
+						}
+
+						drawChunkImage(data, cx * chunkSize, cz * chunkSize, scale, pixelBuffer, waterPixels, terrainHeights, waterHeights, shades, ShadeConstants.GLOBAL.nflowX(0, 0, ShadeConstants.GLOBAL.rX) * 512, ShadeConstants.GLOBAL.nflowZ(0, 0, ShadeConstants.GLOBAL.rZ) * 512);
+					}
+				}
+
+				// save shading
+				if (ConfigProvider.WORLD.getRenderingMode() == RenderingMode.SHADE) {
+					for (byte _iz = 0; _iz < ShadeConstants.GLOBAL.rZ; _iz++) {
+						for (byte _ix = 0; _ix < ShadeConstants.GLOBAL.rX; _ix++) {
+							Shade.add(loc, shades, continuities[_iz * ShadeConstants.GLOBAL.rX + _ix], _ix, _iz);
+						}
+					}
+				}
+
+				if (ConfigProvider.WORLD.getRenderCaves()) {
+					flatShade(pixelBuffer, terrainHeights, scale);
+				} else if (ConfigProvider.WORLD.getShade() && !ConfigProvider.WORLD.getRenderLayerOnly()) {
+					shade(pixelBuffer, waterPixels, terrainHeights, waterHeights, scale);
+				}
+
+				writer.setPixels(0, 0, size, size, PixelFormat.getIntArgbPreInstance(), pixelBuffer, 0, size);
+
+				return finalImage;
+			} catch (Exception ex) {
+				LOGGER.warn("failed to create image for MCAFile {}", mcaFile.getFile().getName(), ex);
+			}
+			return null;
+
+		//
+		//
+		//
+		// }
 	}
 
 	public enum RenderingMode {
